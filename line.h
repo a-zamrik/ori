@@ -2,7 +2,7 @@
 #define ORI_LINE_H
 
 #include <iostream>
-#include <string>
+#include <string.h>
 
 class Line {
   private:
@@ -14,6 +14,7 @@ class Line {
     const char *get_str ();
     unsigned length ();
     void insert_char (char, unsigned);
+    void delete_char (unsigned);
 };
 
 Line::Line (char* _text) {
@@ -34,6 +35,10 @@ unsigned Line::length () {
 
 void Line::insert_char (char c, unsigned pos) {
   this->text.insert (pos, std::string (1, c));
+}
+
+void Line::delete_char (unsigned pos) {
+  this->text.erase (pos, 1);
 }
 
 #endif
