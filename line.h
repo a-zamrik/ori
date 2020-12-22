@@ -11,13 +11,20 @@ class Line {
   public:
     Line (char*);
     Line (void);
+    Line (std::string);
     const char *get_str ();
     unsigned length ();
     void insert_char (char, unsigned);
     void delete_char (unsigned);
+    void clip (unsigned);
+    std::string substr (unsigned, unsigned);
 };
 
 Line::Line (char* _text) {
+  this->text = _text;
+}
+
+Line::Line (std::string _text) {
   this->text = _text;
 }
 
@@ -27,6 +34,10 @@ Line::Line () {
 
 const char *Line::get_str () {
   return this->text.c_str();
+}
+
+std::string Line::substr (unsigned pos, unsigned length) {
+  return this->text.substr (pos, length);
 }
 
 unsigned Line::length () {
@@ -39,6 +50,10 @@ void Line::insert_char (char c, unsigned pos) {
 
 void Line::delete_char (unsigned pos) {
   this->text.erase (pos, 1);
+}
+
+void Line::clip (unsigned pos) {
+  this->text.erase (pos, this->text.length ());
 }
 
 #endif

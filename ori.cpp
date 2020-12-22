@@ -108,11 +108,32 @@ static bool user_input () {
 
     case '\n':
       /* TODO: make new line and move over contents if needed */
+
+      lines.insert (++cursor.line, 
+          Line (cursor.line->substr (cursor.col - cursor.col_offset - 1, cursor.line->length ())));
+      cursor.line--;
+
+      /* Clip off/delete string from previous line to "move" it */
+      cursor.line--;
+      cursor.line->clip (cursor.col - cursor.col_offset - 1);
+      cursor.line++;
+
+      cursor.col = cursor.col_offset + 1;
+      cursor.row++;
       break;
     
     case '\177': /* backspace */
-      cursor.col--;
-      cursor.line->delete_char (cursor.col - cursor.col_offset - 1);
+      if (cursor.line->length () > 0) {
+        cursor.col--;
+        cursor.line->delete_char (cursor.col - cursor.col_offset - 1);
+      } else {
+        /* must have atleast one line on display */
+        if (lines.size () > 1) {
+          lines.erase (cursor.line++);
+          if (cursor.row > 2)
+            cursor.row--;
+        }
+      }
       break;
 
     default:
