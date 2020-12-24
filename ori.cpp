@@ -63,6 +63,7 @@ static void initialize () {
 #endif
 }
 
+/* TODO: user input should be managed by TextBox */
 static bool user_input () {
 
   char c;
@@ -86,6 +87,7 @@ static bool user_input () {
             }
             break;
           case 'B': // down
+            /* TODO: should be able to scroll down to a full page of empty lines */
             if (++cursor.line != text_box->end ()) {
               cursor.row++;
             } else {
@@ -99,7 +101,6 @@ static bool user_input () {
         if (cursor.col - text_box->get_col_offset () > cursor.line->length()) {
           cursor.col = text_box->get_col_offset () + cursor.line->length() + 1;
         }
-
 
       }
       else
@@ -121,9 +122,14 @@ static bool user_input () {
   }
 
   /* if cursor needs to scroll text box down */
-  if (cursor.row + 1 > text_box->get_row_offset () + text_box->get_length ()) {
-    text_box->inc_view_port_offset ();
+  if (cursor.row > text_box->get_row_offset () + text_box->get_length ()) {
+    text_box->inc_scroll_offset ();
     cursor.row--;
+  }
+  
+  if (cursor.row < text_box->get_row_offset ()) {
+    text_box->dec_scroll_offset ();
+    cursor.row++;
   }
   
   return true;
@@ -138,37 +144,17 @@ static void render () {
   printf("\033[38;2;40;40;0m\033[48;2;175;246;199m%sR:%3d C:%3d%*s\n", "[ Ori ]",cursor.row, cursor.col, view_port.ws_col - 18, " ~ ");
   printf("\033[0m");
 
-  /* TODO: rember to use \r */
 
+  text_box->render (view_port.ws_col);
 
-  /* Move to lines that are in view port */
-  std::list<Line>::iterator line = text_box->begin ();
-  int j;
-  for (j = 0; j < text_box->get_view_port_offset (); j++)
-    line++;
-  
-  /* Render lines with text */
-  int i = j;
-  for (i += 1; i < view_port.ws_row + j && line != text_box->end (); i++) {
-    printf("\033[48;2;175;246;199m\033[48;2;40;40;0m%2d%s%s%*s\n",
-        i,
-        "| ",
-        line->get_str (),
-        view_port.ws_col - line->length () - text_box->get_col_offset (),
-        "[ ]");
-    line++;
-  }
+  /* Footer */
+  /*
+  printf("\033[%u;0H", view_port.ws_row);
+  printf("\033[38;2;40;40;0m\033[48;2;175;246;199m[R:%3d C:%3d]%*s", cursor.row, cursor.col, view_port.ws_col - 13, " ~ ");
+  */
+  printf("\033[0m");
 
-  /* Render remaining empty lines */
-  for (i -= j; i < view_port.ws_row - 1; i++) {
-    printf("\033[48;2;175;246;199m\033[48;2;40;40;0m%2c%s%*s", '*',"| ", view_port.ws_col - 4, "[ ]");
-    printf("\033[%u;%uH", i - j + 1, 0);
-  }
-
-  //printf("\033[48;2;175;246;199m\033[48;2;40;40;0m%2c%s%*s", '*',"| ", view_port.ws_col - 4, "[ ]");
-  printf("\033[0m"); 
-
-  /* reset cursor to where user wanted it */
+   /* reset cursor to where user wanted it */
   printf ("\033[%u;%uH", cursor.row, cursor.col);
 
 }

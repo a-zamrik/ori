@@ -11,7 +11,7 @@ struct cursor {
 };
 
 class TextBox {
-  
+
   private:
     /* define the top left corner that TextBox is located */
     unsigned col_offset;
@@ -25,7 +25,7 @@ class TextBox {
     std::list<Line> lines;
 
     /* which line to start off in view port; used in rendering */
-    unsigned line_view_port_offset;
+    unsigned scroll_offset;
 
   public:
     TextBox (unsigned _col_offset, unsigned _row_offset, unsigned _width, unsigned _length) {
@@ -33,7 +33,7 @@ class TextBox {
       this->row_offset = _row_offset;
       this->width = _width;
       this->length = _length;
-      this->line_view_port_offset = 0;
+      this->scroll_offset = 0;
     }
 
     unsigned get_width () {
@@ -44,20 +44,20 @@ class TextBox {
       return this->length;
     }
 
-    void inc_view_port_offset () {
-      this->line_view_port_offset++;
+    void inc_scroll_offset () {
+      this->scroll_offset++;
     }
 
-    void dec_view_port_offset () {
-      this->line_view_port_offset--;
+    void dec_scroll_offset () {
+      this->scroll_offset--;
     }
 
-    unsigned get_view_port_offset () {
-      return this->line_view_port_offset;
+    unsigned get_scroll_offset () {
+      return this->scroll_offset;
     }
 
-    void set_view_port_offset (unsigned offset) {
-      this->line_view_port_offset = offset;
+    void set_scroll_offset (unsigned offset) {
+      this->scroll_offset = offset;
     }
 
     void add_line (std::string str) {
@@ -107,24 +107,31 @@ class TextBox {
 
       cursor.col = this->col_offset + 1;
       cursor.row++;
-        
+
 
     }
 
     void command_backspace (struct cursor &cursor) {
       /* backspace at start of line; append line to line above */
       if (cursor.col == this->col_offset + 1) {
-        
+
         /* must have atleast one line */
-        if (cursor.row == this->row_offset)
+        if (cursor.line == this->begin ())
           return;
+
+        
 
         std::list<Line>::iterator to_be_removed = cursor.line;
         cursor.line--;
 
         /* update cursor */
         cursor.col = this->col_offset + cursor.line->length () + 1;
-        cursor.row--;
+        
+        if (cursor.row == this->row_offset) {
+          this->scroll_offset--;
+        } else {
+          cursor.row--;
+        }
 
         /* modify lines */
         cursor.line->append (to_be_removed);
@@ -144,6 +151,51 @@ class TextBox {
             cursor.row--;
         }
       }
+    }
+
+    void render (unsigned view_port_width) {
+      /* Move to lines that are in view port */
+      std::list<Line>::iterator line = this->begin ();
+      int j;
+      for (j = 0; j < this->scroll_offset; j++)
+        line++;
+
+      /* move cursor to start of text box */
+      unsigned curr_row = this->row_offset;  // curr_row relative to view_port
+      printf ("\033[%u;%uH", this->row_offset, this->col_offset);
+
+      /* mount colors */
+      printf ("\033[48;2;175;246;199m\033[48;2;40;40;0m");
+
+
+      /* print lines with text within bounds */
+      for (int i = j; i < this->scroll_offset + this->row_offset + this->length - 1 && line != this->end (); i++) {
+        printf ("\033[%u;0H", curr_row);
+        printf("%2d%s%s%*s",
+            i + 1,
+            "| ",
+            line->get_str (),
+            view_port_width - line->length () - this->col_offset,
+            "[ ]");
+        line++;
+        curr_row++;
+      }
+
+      /* print empty lines within bounds if room */
+      for (; curr_row <= this->row_offset + this->length; curr_row++) {
+        printf("\033[%u;0H%2c%s%*s",
+            curr_row,
+            '*',
+            "| ",
+            view_port_width - 4,
+            "[ ]");
+      }
+
+      /* reset console to default colors */
+      printf("\033[0m"); 
+
+
+
     }
 
 };
