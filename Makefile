@@ -3,5 +3,4 @@ ori: ori.cpp line.h text_box.h
 
 clean:
 	rm ori
-	rm *.o
 

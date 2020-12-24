@@ -41,14 +41,12 @@ static void initialize () {
   }
 
   /* TODO: FREE THIS */
-  text_box = new TextBox (4, 2, view_port.ws_col - 4,  view_port.ws_row - 2);
+  text_box = new TextBox (1, 2, view_port.ws_col + 1,  view_port.ws_row - 2);
+
   text_box->add_line (strdup ("Howdy There"));
   text_box->add_line (strdup ("Up Down"));
 
-  cursor.line = text_box->begin ();
-  cursor.row = 2;
-  cursor.col = 5;
- 
+  text_box->mount_cursor (cursor); 
 
   /* TODO: add error handling */
   /* Disables stdin echo and buffered I/O */
@@ -65,75 +63,10 @@ static void initialize () {
 
 /* TODO: user input should be managed by TextBox */
 static bool user_input () {
-
-  char c;
-  switch ((c = getchar ())) {
-    /* Escape sequence given */
-    case '\033':
-      if ((c = getchar ()) == '[') {
-        switch (getchar ()) {
-          case 'C': // right
-            if (cursor.col < cursor.line->length() + text_box->get_col_offset () + 1)
-              cursor.col++;
-            break;
-          case 'D': // left
-            if (cursor.col > text_box->get_col_offset () + 1)
-              cursor.col--;
-            break;
-          case 'A': // up
-            if (cursor.line != text_box->begin ()) {
-              cursor.row--;
-              cursor.line--;
-            }
-            break;
-          case 'B': // down
-            /* TODO: should be able to scroll down to a full page of empty lines */
-            if (++cursor.line != text_box->end ()) {
-              cursor.row++;
-            } else {
-              cursor.line--;
-            }
-            break;
-        }
-
-        /* push back cursor to end of line when moving up or down into
-         * no mans land */
-        if (cursor.col - text_box->get_col_offset () > cursor.line->length()) {
-          cursor.col = text_box->get_col_offset () + cursor.line->length() + 1;
-        }
-
-      }
-      else
-        return false;
-      break;
-
-    case '\n':
-      text_box->command_new_line (cursor);
-      break;
-
-    case '\177': /* backspace */
-      text_box->command_backspace (cursor);
-      break;
-
-    default:
-      cursor.line->insert_char (c, cursor.col - text_box->get_col_offset () - 1);
-      cursor.col++;
-      return true;
-  }
-
-  /* if cursor needs to scroll text box down */
-  if (cursor.row > text_box->get_row_offset () + text_box->get_length ()) {
-    text_box->inc_scroll_offset ();
-    cursor.row--;
-  }
-  
-  if (cursor.row < text_box->get_row_offset ()) {
-    text_box->dec_scroll_offset ();
-    cursor.row++;
-  }
-  
-  return true;
+  text_box->get_user_input (cursor);
 }
+
+
 
 static void render () {
 
@@ -154,7 +87,7 @@ static void render () {
   */
   printf("\033[0m");
 
-   /* reset cursor to where user wanted it */
+   /* reset cursor to where user wanted it; boolean needed since stdout is not zero index */
   printf ("\033[%u;%uH", cursor.row, cursor.col);
 
 }
