@@ -71,7 +71,8 @@ static bool user_input () {
 static void render () {
 
 
-  printf ("\033[0;0H");  /* move cursor to top left cornor */
+  printf ("\033[0;0H");   /* move cursor to top left cornor */
+  printf ("\e[?25l");     /* hide cursor */
 
   /* Header. Top Bar */
   printf("\033[38;2;40;40;0m\033[48;2;175;246;199m%sR:%3d C:%3d%*s\n", "[ Ori ]",cursor.row, cursor.col, view_port.ws_col - 18, " ~ ");
@@ -89,6 +90,8 @@ static void render () {
 
    /* reset cursor to where user wanted it; boolean needed since stdout is not zero index */
   printf ("\033[%u;%uH", cursor.row, cursor.col);
+
+  printf ("\e[?25h");     /* show cursor */
 
 }
 
