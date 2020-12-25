@@ -8,20 +8,37 @@
 class Line {
   private:
     std::string text;
+    std::string mark = "[ ]";
   
   public:
     Line (char*);
     Line (void);
     Line (std::string);
+    Line (std::string&, std::string&);
     const char *get_str ();
     const std::string get_str_obj (); 
     unsigned length ();
     void insert_char (char, unsigned);
     void append (std::list<Line>::iterator &);
     void delete_char (unsigned);
-    void clip (unsigned);
+    bool clip (unsigned);
     std::string substr (unsigned, unsigned);
+    const char* get_mark ();
+    void set_mark (char);
 };
+
+const char* Line::get_mark () {
+  return this->mark.c_str ();
+}
+
+void Line::set_mark (char c) {
+  this->mark[1] = c;
+}
+
+Line::Line (std::string &text, std::string &mark) {
+  this->text = std::string (text);
+  this->mark = std::string (mark);
+}
 
 Line::Line (char* _text) {
   this->text = _text;
@@ -63,8 +80,11 @@ void Line::delete_char (unsigned pos) {
   this->text.erase (pos, 1);
 }
 
-void Line::clip (unsigned pos) {
+// return true if line changed
+bool Line::clip (unsigned pos) {
+  unsigned old_length = this->text.length();
   this->text.erase (pos, this->text.length ());
+  return old_length != text.length ();
 }
 
 #endif

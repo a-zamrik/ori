@@ -18,6 +18,7 @@ class TextBox {
     unsigned text_col_offset;
     unsigned text_row_offset;
 
+    /* where the text box in its entirity is pinned at */
     unsigned row_anchor;
     unsigned col_anchor;
 
@@ -31,7 +32,13 @@ class TextBox {
     /* which line to start off in view port; used in rendering */
     unsigned scroll_offset;
 
+    /* enable line numbers if true */
     bool numbered_lines = 0;
+
+    /* rows to jump when using page up or down */
+    unsigned jump_dist;
+
+    std::list<Line*> marked_lines;
 
   public:
     /* _COL_OFFSET and _ROW_OFFSET is the top left start of where the text
@@ -39,15 +46,12 @@ class TextBox {
      * _WIDTH and _LENGTH stores the length and width of text box.
      */
     TextBox (unsigned _col_offset, unsigned _row_offset, unsigned _width, unsigned _length) {
-      
+
       /* stdout does not use 0 based indexing. Using zero based indexing
        * will break rendering */
       assert (_col_offset > 0);
       assert (_row_offset > 0);
 
-
-
-      
       this->text_col_offset = _col_offset;
       this->text_row_offset = _row_offset;
       this->row_anchor = _row_offset;
@@ -55,6 +59,7 @@ class TextBox {
       this->width = _width;
       this->length = _length;
       this->scroll_offset = 0;
+      this->jump_dist = _length / 2;
     }
 
     void mount_cursor (struct cursor &cursor) {
@@ -167,6 +172,7 @@ class TextBox {
         /* update cursor */
         cursor.col = this->text_col_offset + cursor.line->length ();
 
+        /* move cursor up if deleting at start of text; scroll if needed */
         if (cursor.row == this->text_row_offset) {
           this->scroll_offset--;
         } else {
@@ -174,15 +180,22 @@ class TextBox {
         }
 
         /* modify lines */
-        cursor.line->append (to_be_removed);
+        if (to_be_removed->length()) {
+          cursor.line->append (to_be_removed);
+          cursor.line->set_mark ('+');
+          this->marked_lines.push_back (&(*cursor.line));
+        }
         this->remove_line (to_be_removed);
         return;
       }
 
 
+      /* deleteing just char or entire line */
       if (cursor.line->length () > 0) {
         cursor.col--;
         cursor.line->delete_char (cursor.col - this->text_col_offset);
+        cursor.line->set_mark ('+');
+        this->marked_lines.push_back (&(*cursor.line));
       } else {
         /* must have atleast one line on display */
         if (this->num_lines () > 1) {
@@ -193,9 +206,44 @@ class TextBox {
       }
     }
 
+    bool command_down (struct cursor &cursor) {
+      bool result = false;
+      /* TODO: should be able to scroll down to a full page of empty lines */
+      if (++cursor.line != this->end ()) {
+        cursor.row++;
+        result = true;
+      } else {
+        cursor.line--;
+      }
+
+      return result;
+    }
+
+    bool command_up (struct cursor &cursor) {
+      if (cursor.line != this->begin ()) {
+        cursor.row--;
+        cursor.line--;
+        return true;
+      }
+      return false;
+    }
+
+    void clear_marked_lines () {
+      if (marked_lines.size () > 0) {
+        std::list<Line*>::iterator it;
+        for (it = marked_lines.begin (); it != marked_lines.end ();) {
+          (*it)->set_mark (' ');
+          marked_lines.erase (it++);
+        }
+      }
+
+    }
+
     bool get_user_input (struct cursor &cursor) {
-      char c;
-      switch ((c = getchar ())) {
+      char c = getchar ();
+
+      switch (c) {
+        
         /* Escape sequence given */
         case '\033':
           if ((c = getchar ()) == '[') {
@@ -209,17 +257,28 @@ class TextBox {
                   cursor.col--;
                 break;
               case 'A': // up
-                if (cursor.line != this->begin ()) {
-                  cursor.row--;
-                  cursor.line--;
-                }
+                this->command_up (cursor);
                 break;
               case 'B': // down
-                /* TODO: should be able to scroll down to a full page of empty lines */
-                if (++cursor.line != this->end ()) {
-                  cursor.row++;
-                } else {
-                  cursor.line--;
+                this->command_down (cursor);
+                break;
+              case '6': // page down
+                getchar (); // consume '~' that is part of page down cmd
+                int i;
+                for (i = 0; i < this->jump_dist && this->command_down (cursor); i++) {
+                  if (cursor.row > this->get_text_row_offset () + this->get_length ()) {
+                    this->inc_scroll_offset ();
+                    cursor.row--;
+                  }
+                }
+                break;
+              case '5': // page up
+                getchar (); // consume '~' that is part of page down cmd
+                for (int i = 0; i < this->jump_dist && this->command_up (cursor); i++) {
+                  if (cursor.row < this->get_text_row_offset ()) {
+                    this->dec_scroll_offset ();
+                    cursor.row++;
+                  }
                 }
                 break;
             }
@@ -242,15 +301,26 @@ class TextBox {
           this->command_backspace (cursor);
           break;
 
-        case '0':
-          this->disable_line_number (cursor);
+        case '\f': /* '^L' */
+          if (this->numbered_lines)
+            this->disable_line_number (cursor);
+          else
+            this->enable_line_number (cursor);
           break;
 
-        case '1':
-          this->enable_line_number (cursor);
+        case '\031': /* '^Y' */
+          cursor.line->set_mark ('C');
+          this->marked_lines.push_back (&(*cursor.line));
           break;
+
+        case '\020': /* '^P' */
+          this->clear_marked_lines ();
+          break;
+
 
         default:
+          cursor.line->set_mark ('+');
+          this->marked_lines.push_back (&(*cursor.line));
           cursor.line->insert_char (c, cursor.col - this->text_col_offset);
           cursor.col++;
           return true;
@@ -301,15 +371,15 @@ class TextBox {
 
 
       /* print lines with text within bounds */
-        for (int i = j; i < this->scroll_offset + this->text_row_offset + this->length - 1 && line != this->end (); i++) {
-          printf ("\033[%u;%uH", curr_row, this->text_col_offset);
-          printf("%s%*s",
-              line->get_str (),
-              this->width - line->length () - this->text_col_offset,
-              "[ ]");
-          line++;
-          curr_row++;
-        }
+      for (int i = j; i < this->scroll_offset + this->text_row_offset + this->length - 1 && line != this->end (); i++) {
+        printf ("\033[%u;%uH", curr_row, this->text_col_offset);
+        printf("%s%*s",
+            line->get_str (),
+            this->width - line->length () - this->text_col_offset,
+            line->get_mark ());
+        line++;
+        curr_row++;
+      }
 
       /* print empty lines */
       if (this->numbered_lines) {
