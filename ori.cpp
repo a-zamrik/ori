@@ -5,33 +5,37 @@
 #include <string.h>
 #include <unistd.h>
 #include <termios.h>
+#include <fstream>
 
 #include "line.h"
 #include "text_box.h"
+#include "loader.h"
 
 #define DEBUG
 
-static void initialize (void);
+static void initialize (const std::string &);
 static bool user_input (void);
 static void render (void);
 
 /* holds rows and coloumns of console */
 struct winsize view_port;
 TextBox* text_box = NULL;
+std::fstream file;
 
 struct cursor cursor;
 
 int main () {
-  initialize ();
+  initialize ("text.txt");
   render ();
 
   while (user_input ())
     render ();
 
+  file.close ();
   return 0;
 }
 
-static void initialize () {
+static void initialize (const std::string &file_name) {
 
 
   /* get view_port size */
@@ -43,8 +47,13 @@ static void initialize () {
   /* TODO: FREE THIS */
   text_box = new TextBox (1, 2, view_port.ws_col + 1,  view_port.ws_row - 2);
 
-  text_box->add_line (strdup ("Howdy There"));
+  /* text_box->add_line (strdup ("Howdy There"));
   text_box->add_line (strdup ("Up Down"));
+  */
+
+  if (!loader::load_file (file_name, *text_box, file)) {
+    std::cout << "failed to load " << file_name << std::endl;
+  }
 
   text_box->mount_cursor (cursor); 
 

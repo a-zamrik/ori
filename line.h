@@ -69,22 +69,28 @@ unsigned Line::length () {
 }
 
 void Line::insert_char (char c, unsigned pos) {
+  this->set_mark ('+');
   this->text.insert (pos, std::string (1, c));
 }
 
 void Line::append (std::list<Line>::iterator &line) {
-  this->text.append (line->get_str_obj ());
+  if (line->length ()) {
+    this->set_mark ('+');
+    this->text.append (line->get_str_obj ());
+  }
 }
 
 void Line::delete_char (unsigned pos) {
   this->text.erase (pos, 1);
+  this->set_mark ('+');
 }
 
 // return true if line changed
 bool Line::clip (unsigned pos) {
   unsigned old_length = this->text.length();
   this->text.erase (pos, this->text.length ());
-  return old_length != text.length ();
+  if (old_length != text.length ())
+    this->set_mark ('+');
 }
 
 #endif

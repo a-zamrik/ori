@@ -152,6 +152,8 @@ class TextBox {
       cursor.line->clip (cursor.col - this->text_col_offset);
       cursor.line++;
 
+      if (cursor.col != this->text_col_offset || !cursor.line->length ())
+        cursor.line->set_mark ('+');
       cursor.col = this->text_col_offset;
       cursor.row++;
     }
@@ -182,8 +184,6 @@ class TextBox {
         /* modify lines */
         if (to_be_removed->length()) {
           cursor.line->append (to_be_removed);
-          cursor.line->set_mark ('+');
-          this->marked_lines.push_back (&(*cursor.line));
         }
         this->remove_line (to_be_removed);
         return;
@@ -194,8 +194,6 @@ class TextBox {
       if (cursor.line->length () > 0) {
         cursor.col--;
         cursor.line->delete_char (cursor.col - this->text_col_offset);
-        cursor.line->set_mark ('+');
-        this->marked_lines.push_back (&(*cursor.line));
       } else {
         /* must have atleast one line on display */
         if (this->num_lines () > 1) {
@@ -239,6 +237,7 @@ class TextBox {
 
     }
 
+    /* TODO: input should be collected by main and passed in to here */
     bool get_user_input (struct cursor &cursor) {
       char c = getchar ();
 
@@ -317,9 +316,13 @@ class TextBox {
           this->clear_marked_lines ();
           break;
 
+          
+        case 0x13: /* '^s' */
+          /* TODO: Implement */
+          break;
+
 
         default:
-          cursor.line->set_mark ('+');
           this->marked_lines.push_back (&(*cursor.line));
           cursor.line->insert_char (c, cursor.col - this->text_col_offset);
           cursor.col++;
