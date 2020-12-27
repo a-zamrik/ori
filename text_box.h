@@ -4,6 +4,7 @@
 #include "line.h"
 #include <list>
 #include <assert.h>
+#include <fstream>
 
 struct cursor {
   unsigned row;
@@ -40,104 +41,36 @@ class TextBox {
 
     std::list<Line*> marked_lines;
 
-  public:
-    /* _COL_OFFSET and _ROW_OFFSET is the top left start of where the text
-     * will be located.
-     * _WIDTH and _LENGTH stores the length and width of text box.
-     */
-    TextBox (unsigned _col_offset, unsigned _row_offset, unsigned _width, unsigned _length) {
+    /* file associated with this TextBox */
+    std::string file_name;
 
-      /* stdout does not use 0 based indexing. Using zero based indexing
-       * will break rendering */
-      assert (_col_offset > 0);
-      assert (_row_offset > 0);
+    bool load_file (std::string const&file_name) {
+      this->file_name = file_name;
+      std::string line;
+      std::ifstream working_file (file_name);
 
-      this->text_col_offset = _col_offset;
-      this->text_row_offset = _row_offset;
-      this->row_anchor = _row_offset;
-      this->col_anchor = _col_offset;
-      this->width = _width;
-      this->length = _length;
-      this->scroll_offset = 0;
-      this->jump_dist = _length / 2;
+      if (working_file.is_open ()) {
+        while (getline (working_file, line)) {
+          this->add_line (line);
+        }
+        working_file.close ();
+        return true;
+      }
+      return false;
     }
 
-    void mount_cursor (struct cursor &cursor) {
-      cursor.row = this->text_row_offset;
-      cursor.col = this->text_col_offset;
-      cursor.line = this->begin ();
-    }
+    bool write_file () {
+      std::list<Line>::iterator it = lines.begin ();
+      std::ofstream working_file (file_name);
 
-    unsigned get_width () {
-      return this->width;
-    }
+      assert (working_file.is_open ());
 
-    unsigned get_length () {
-      return this->length;
-    }
-
-    void inc_scroll_offset () {
-      this->scroll_offset++;
-    }
-
-    void dec_scroll_offset () {
-      this->scroll_offset--;
-    }
-
-    void add_line (std::string str) {
-      lines.push_back (Line (str));
-    }
-
-    void remove_line (std::list<Line>::iterator it) {
-      lines.erase (it);
-    }
-
-    std::list<Line>::iterator begin () {
-      return lines.begin ();
-    }
-
-    std::list<Line>::iterator end () {
-      return lines.end ();
-    }
-
-    unsigned get_text_col_offset () {
-      return this->text_col_offset;
-    }
-
-    unsigned get_text_row_offset () {
-      return this->text_row_offset;
-    }
-
-    void insert_line (std::list<Line>::iterator it, Line line) {
-      lines.insert (it, line);
-    }
-
-    unsigned num_lines () {
-      return lines.size ();
-    }
-
-    void enable_line_number (struct cursor &cursor) {
-      if (this->numbered_lines)
-        return;
-
-      this->numbered_lines = true;
-      this->text_col_offset += 5;
-      cursor.col += 5;
-    }
-
-    void disable_line_number (struct cursor &cursor) {
-      if (!this->numbered_lines)
-        return;
-
-      this->numbered_lines = false;
-      this->text_col_offset -= 5;
-      cursor.col -= 5;
-    }
-
-    /* STDOUT is not 0 based indexed. If text box is at col 0 need to add
-     * 1 to cursor.col */
-    bool std_cursor_adjust () {
-      return this->text_col_offset == 0;
+      /* TODO: add error handling */
+      for (it = lines.begin (); it != lines.end (); it++) {
+        working_file << it->get_str_obj () << std::endl;
+      }
+    
+      working_file.close ();
     }
 
     void command_new_line (struct cursor &cursor) {
@@ -196,7 +129,7 @@ class TextBox {
         cursor.line->delete_char (cursor.col - this->text_col_offset);
       } else {
         /* must have atleast one line on display */
-        if (this->num_lines () > 1) {
+        if (this->lines.size () > 1) {
           this->remove_line (cursor.line++);
           if (cursor.row > this->text_row_offset)
             cursor.row--;
@@ -237,6 +170,80 @@ class TextBox {
 
     }
 
+
+
+  public:
+    /* _COL_OFFSET and _ROW_OFFSET is the top left start of where the text
+     * will be located.
+     * _WIDTH and _LENGTH stores the length and width of text box.
+     */
+    TextBox (unsigned _col_offset, unsigned _row_offset, unsigned _width, unsigned _length) {
+      /* stdout does not use 0 based indexing. Using zero based indexing
+       * will break rendering */
+      assert (_col_offset > 0);
+      assert (_row_offset > 0);
+
+      this->text_col_offset = _col_offset;
+      this->text_row_offset = _row_offset;
+      this->row_anchor = _row_offset;
+      this->col_anchor = _col_offset;
+      this->width = _width;
+      this->length = _length;
+      this->scroll_offset = 0;
+      this->jump_dist = _length / 2;
+    }
+
+    TextBox (unsigned _col_offset, unsigned _row_offset, unsigned _width,
+             unsigned _length, const std::string &file_name) {
+      *this = TextBox (_col_offset, _row_offset, _width, _length);
+      this->load_file (file_name);
+    }
+
+
+    void mount_cursor (struct cursor &cursor) {
+      cursor.row = this->text_row_offset;
+      cursor.col = this->text_col_offset;
+      cursor.line = this->begin ();
+    }
+
+    void add_line (std::string str) {
+      lines.push_back (Line (str));
+    }
+
+    void remove_line (std::list<Line>::iterator it) {
+      lines.erase (it);
+    }
+
+    std::list<Line>::iterator begin () {
+      return lines.begin ();
+    }
+
+    std::list<Line>::iterator end () {
+      return lines.end ();
+    }
+
+    void insert_line (std::list<Line>::iterator it, Line line) {
+      lines.insert (it, line);
+    }
+
+    void enable_line_number (struct cursor &cursor) {
+      if (this->numbered_lines)
+        return;
+
+      this->numbered_lines = true;
+      this->text_col_offset += 5;
+      cursor.col += 5;
+    }
+
+    void disable_line_number (struct cursor &cursor) {
+      if (!this->numbered_lines)
+        return;
+
+      this->numbered_lines = false;
+      this->text_col_offset -= 5;
+      cursor.col -= 5;
+    }
+
     /* TODO: input should be collected by main and passed in to here */
     bool get_user_input (struct cursor &cursor) {
       char c = getchar ();
@@ -265,8 +272,8 @@ class TextBox {
                 getchar (); // consume '~' that is part of page down cmd
                 int i;
                 for (i = 0; i < this->jump_dist && this->command_down (cursor); i++) {
-                  if (cursor.row > this->get_text_row_offset () + this->get_length ()) {
-                    this->inc_scroll_offset ();
+                  if (cursor.row > this->text_row_offset + this->length) {
+                    this->scroll_offset++;
                     cursor.row--;
                   }
                 }
@@ -274,8 +281,8 @@ class TextBox {
               case '5': // page up
                 getchar (); // consume '~' that is part of page down cmd
                 for (int i = 0; i < this->jump_dist && this->command_up (cursor); i++) {
-                  if (cursor.row < this->get_text_row_offset ()) {
-                    this->dec_scroll_offset ();
+                  if (cursor.row < this->text_row_offset) {
+                    this->scroll_offset--;
                     cursor.row++;
                   }
                 }
@@ -317,8 +324,8 @@ class TextBox {
           break;
 
           
-        case 0x13: /* '^s' */
-          /* TODO: Implement */
+        case 0x17: /* '^w' */
+          this->write_file ();
           break;
 
 
@@ -330,13 +337,13 @@ class TextBox {
       }
 
       /* if cursor needs to scroll text box down */
-      if (cursor.row > this->get_text_row_offset () + this->get_length ()) {
-        this->inc_scroll_offset ();
+      if (cursor.row > this->text_row_offset + this->length) {
+        this->scroll_offset++;
         cursor.row--;
       }
 
-      if (cursor.row < this->get_text_row_offset ()) {
-        this->dec_scroll_offset ();
+      if (cursor.row < this->text_row_offset) {
+        this->scroll_offset--;
         cursor.row++;
       }
 

@@ -9,7 +9,6 @@
 
 #include "line.h"
 #include "text_box.h"
-#include "loader.h"
 
 #define DEBUG
 
@@ -45,15 +44,11 @@ static void initialize (const std::string &file_name) {
   }
 
   /* TODO: FREE THIS */
-  text_box = new TextBox (1, 2, view_port.ws_col + 1,  view_port.ws_row - 2);
+  text_box = new TextBox (1, 2, view_port.ws_col + 1,  view_port.ws_row - 2, "text.txt");
 
   /* text_box->add_line (strdup ("Howdy There"));
   text_box->add_line (strdup ("Up Down"));
   */
-
-  if (!loader::load_file (file_name, *text_box, file)) {
-    std::cout << "failed to load " << file_name << std::endl;
-  }
 
   text_box->mount_cursor (cursor); 
 
