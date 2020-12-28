@@ -20,11 +20,17 @@ class Menu : public OriEntity {
       unsigned get_height ();
       unsigned get_width ();
       void draw (unsigned, unsigned);
+      void select ();
+      void deselect ();
    };
 
-   Menu (unsigned _col_offset, unsigned _row_offset, unsigned _width, unsigned _length);
+    Menu (unsigned _col_offset, unsigned _row_offset,
+          unsigned _width, unsigned _length);
     void add_entry (MenuEntry);
     void render (void);
+    void do_command (struct cursor &, unsigned, char);
+    void mount_cursor (struct cursor &);
+    struct cursor & unmount_cursor (struct cursor &);
 
  private:
     /* define the top left corner that TextBox is located */
@@ -55,8 +61,11 @@ class Menu : public OriEntity {
     unsigned entries_width;
     unsigned entries_height;
 
-    /* TODO: add embed */
-
+    /* 
+     * Methods -----------------------
+     */
+    void command_up (struct cursor&);
+    void command_down (struct cursor&);
 
 };
 

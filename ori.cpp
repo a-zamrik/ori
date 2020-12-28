@@ -11,6 +11,7 @@
 #include "text_box.h"
 #include "menu.h"
 #include "keybinding.h"
+#include "cursor.h"
 
 #define DEBUG
 
@@ -118,8 +119,11 @@ static bool user_input () {
 
     case '\017': /* '^O' */
       if (selectedEntity == text_box) {
+        
+        menu->mount_cursor (selectedEntity->unmount_cursor (cursor));
         selectedEntity = menu;
       } else {
+        text_box->mount_cursor (selectedEntity->unmount_cursor (cursor));
         selectedEntity = text_box;
       }
       return true;

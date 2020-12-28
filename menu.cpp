@@ -1,7 +1,10 @@
 #include "menu.h"
+#include "keybinding.h"
 #include <assert.h>
+#include "cursor.h"
 
-Menu::Menu (unsigned _col_offset, unsigned _row_offset, unsigned _width, unsigned _length) {
+Menu::Menu (unsigned _col_offset, unsigned _row_offset, unsigned _width,
+            unsigned _length) {
   /* stdout does not use 0 based indexing. Using zero based indexing
    * will break rendering */
   assert (_col_offset > 0);
@@ -52,6 +55,64 @@ void Menu::render () {
   printf ("\033[0m"); 
 }
 
+void Menu::command_up (struct cursor &cursor) {
+  if (cursor.entry != this->entries.begin ()) {
+    cursor.entry->deselect ();
+    cursor.entry--;
+    cursor.entry->select ();
+  }
+}
+
+void Menu::command_down (struct cursor &cursor) {
+  if (cursor.entry != --this->entries.end ()) {
+    cursor.entry->deselect ();
+    cursor.entry++;
+    cursor.entry->select ();
+  }
+}
+
+void Menu::do_command (struct cursor &cursor, unsigned command, char c) {
+  switch (command) {
+    case UP:
+      this->command_up (cursor);
+      break;
+    case DOWN:
+      this->command_down (cursor);
+      break;
+    case LEFT:
+      break;
+    case RIGHT:
+      break;
+    case ENTER:
+      break;
+
+    default:
+      break;
+  }
+}
+
+void Menu::mount_cursor (struct cursor &cursor) {
+
+  cursor.entry = this->entries.begin ();
+  cursor.entry->select ();
+
+}
+
+struct cursor& Menu::unmount_cursor (struct cursor &cursor) {
+
+  cursor.entry->deselect ();
+  return cursor;
+
+}
+
+
+/*  
+ *  ----------------
+ *
+ *  MenuEntry Below;
+ *  
+ *  ----------------
+ */
 
 Menu::MenuEntry::MenuEntry (unsigned _width, unsigned _height, const std::string &_text) {
   this->width = _width;
@@ -80,5 +141,13 @@ void  Menu::MenuEntry::draw (unsigned row_offset, unsigned col_offset) {
     printf ("\033[%u;%uH", ++row_offset, col_offset);
     printf ("%*s", this->width, " ");
   }
+}
+
+void Menu::MenuEntry::select () {
+  this->mark[1] = '*';
+}
+
+void Menu::MenuEntry::deselect () {
+  this->mark[1] = ' ';
 }
 
