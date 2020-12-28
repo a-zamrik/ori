@@ -1,3 +1,18 @@
-Now this is working as
-Intended
+This is a test text
+file to make sure that this
+program is working correctly
+
+How are you?
+
+I am doing good.
+
+Oh...
+
+What?
+
+I was hoping that you were not good.
+
+...
+
+...
 

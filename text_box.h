@@ -2,9 +2,12 @@
 #define ORI_TEXT_BOX_H
 
 #include "line.h"
+#include "ori_entity.h"
+#include "keybinding.h"
 #include <list>
 #include <assert.h>
 #include <fstream>
+
 
 struct cursor {
   unsigned row;
@@ -12,7 +15,9 @@ struct cursor {
   std::list<Line>::iterator line;
 };
 
-class TextBox {
+
+
+class TextBox : public OriEntity {
 
   private:
     /* define the top left corner that TextBox is located */
@@ -69,7 +74,7 @@ class TextBox {
       for (it = lines.begin (); it != lines.end (); it++) {
         working_file << it->get_str_obj () << std::endl;
       }
-    
+
       working_file.close ();
     }
 
@@ -194,7 +199,7 @@ class TextBox {
     }
 
     TextBox (unsigned _col_offset, unsigned _row_offset, unsigned _width,
-             unsigned _length, const std::string &file_name) {
+        unsigned _length, const std::string &file_name) {
       *this = TextBox (_col_offset, _row_offset, _width, _length);
       this->load_file (file_name);
     }
@@ -244,96 +249,70 @@ class TextBox {
       cursor.col -= 5;
     }
 
-    /* TODO: input should be collected by main and passed in to here */
-    bool get_user_input (struct cursor &cursor) {
-      char c = getchar ();
+    void do_command (struct cursor &cursor, unsigned command, char c) {
 
-      switch (c) {
-        
-        /* Escape sequence given */
-        case '\033':
-          if ((c = getchar ()) == '[') {
-            switch (getchar ()) {
-              case 'C': // right
-                if (cursor.col < cursor.line->length() + this->text_col_offset)
-                  cursor.col++;
-                break;
-              case 'D': // left
-                if (cursor.col > this->text_col_offset)
-                  cursor.col--;
-                break;
-              case 'A': // up
-                this->command_up (cursor);
-                break;
-              case 'B': // down
-                this->command_down (cursor);
-                break;
-              case '6': // page down
-                getchar (); // consume '~' that is part of page down cmd
-                int i;
-                for (i = 0; i < this->jump_dist && this->command_down (cursor); i++) {
-                  if (cursor.row > this->text_row_offset + this->length) {
-                    this->scroll_offset++;
-                    cursor.row--;
-                  }
-                }
-                break;
-              case '5': // page up
-                getchar (); // consume '~' that is part of page down cmd
-                for (int i = 0; i < this->jump_dist && this->command_up (cursor); i++) {
-                  if (cursor.row < this->text_row_offset) {
-                    this->scroll_offset--;
-                    cursor.row++;
-                  }
-                }
-                break;
-            }
+      switch (command) {
+        case UP:
+          this->command_up (cursor);
+          break;
+        case DOWN:
+          this->command_down (cursor);
+          break;
+        case LEFT:
+          if (cursor.col > this->text_col_offset)
+            cursor.col--;
+          break;
 
-            /* push back cursor to end of line when moving up or down into
-             * no mans land */
-            if (cursor.col - this->text_col_offset > cursor.line->length()) {
-              cursor.col = this->text_col_offset + cursor.line->length();
+        case RIGHT:
+          if (cursor.col < cursor.line->length() + this->text_col_offset)
+            cursor.col++;
+          break;
+
+        case PGUP:
+          for (int i = 0; i < this->jump_dist && this->command_up (cursor); i++) {
+            if (cursor.row < this->text_row_offset) {
+              this->scroll_offset--;
+              cursor.row++;
             }
           }
-          else
-            return false;
           break;
 
-        case '\n':
+        case PGDOWN:
+          for (int i = 0; i < this->jump_dist && this->command_down (cursor); i++) {
+            if (cursor.row > this->text_row_offset + this->length) {
+              this->scroll_offset++;
+              cursor.row--;
+            }
+          }
+          break;
+
+        case ENTER:
           this->command_new_line (cursor);
           break;
-
-        case '\177': /* backspace */
+        case BACKSPACE:
           this->command_backspace (cursor);
           break;
-
-        case '\f': /* '^L' */
+        case CTRL_L:
           if (this->numbered_lines)
             this->disable_line_number (cursor);
           else
             this->enable_line_number (cursor);
           break;
 
-        case '\031': /* '^Y' */
-          cursor.line->set_mark ('C');
-          this->marked_lines.push_back (&(*cursor.line));
-          break;
 
-        case '\020': /* '^P' */
-          this->clear_marked_lines ();
-          break;
-
-          
-        case 0x17: /* '^w' */
+        case CTRL_W:
           this->write_file ();
           break;
-
-
-        default:
+        default: // command = TEXT
           this->marked_lines.push_back (&(*cursor.line));
           cursor.line->insert_char (c, cursor.col - this->text_col_offset);
           cursor.col++;
-          return true;
+      }
+
+      /* push back cursor to end of line when moving up or down into
+       * no mans land */
+      if (cursor.col - this->text_col_offset > cursor.line->length()) {
+        cursor.col = this->text_col_offset + cursor.line->length();
       }
 
       /* if cursor needs to scroll text box down */
@@ -346,12 +325,10 @@ class TextBox {
         this->scroll_offset--;
         cursor.row++;
       }
-
-      return true;
     }
 
 
-    void render (unsigned view_port_width) {
+    void render () {
       /* Move to lines that are in view port */
       std::list<Line>::iterator line = this->begin ();
       std::list<Line>::iterator ref_line;

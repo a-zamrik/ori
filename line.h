@@ -75,7 +75,9 @@ void Line::insert_char (char c, unsigned pos) {
 
 void Line::append (std::list<Line>::iterator &line) {
   if (line->length ()) {
-    this->set_mark ('+');
+    if (this->length ()) {
+      this->set_mark ('+');
+    }
     this->text.append (line->get_str_obj ());
   }
 }
