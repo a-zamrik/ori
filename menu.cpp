@@ -56,18 +56,18 @@ void Menu::render () {
 }
 
 void Menu::command_up (struct cursor &cursor) {
-  if (cursor.entry != this->entries.begin ()) {
-    cursor.entry->deselect ();
-    cursor.entry--;
-    cursor.entry->select ();
+  if (this->curr_entry != this->entries.begin ()) {
+    this->curr_entry->deselect ();
+    this->curr_entry--;
+    this->curr_entry->select ();
   }
 }
 
 void Menu::command_down (struct cursor &cursor) {
-  if (cursor.entry != --this->entries.end ()) {
-    cursor.entry->deselect ();
-    cursor.entry++;
-    cursor.entry->select ();
+  if (this->curr_entry != --this->entries.end ()) {
+    this->curr_entry->deselect ();
+    this->curr_entry++;
+    this->curr_entry->select ();
   }
 }
 
@@ -93,14 +93,14 @@ void Menu::do_command (struct cursor &cursor, unsigned command, char c) {
 
 void Menu::mount_cursor (struct cursor &cursor) {
 
-  cursor.entry = this->entries.begin ();
-  cursor.entry->select ();
+  this->curr_entry = this->entries.begin ();
+  this->curr_entry->select ();
 
 }
 
 struct cursor& Menu::unmount_cursor (struct cursor &cursor) {
 
-  cursor.entry->deselect ();
+  this->curr_entry->deselect ();
   return cursor;
 
 }

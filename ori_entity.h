@@ -1,8 +1,13 @@
 #ifndef ORI_ENTITY_H
 #define ORI_ENTITY_H
 
+#include "cursor.h"
 
 class OriEntity {
+
+  private:
+    struct cursor cursor;
+
   public:
     virtual void render () {}
     virtual void do_command (struct cursor&, unsigned, char) {}

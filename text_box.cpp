@@ -40,17 +40,17 @@ bool TextBox::write_file () {
 void TextBox::command_new_line (struct cursor &cursor) {
   /* TODO: make new line and move over contents if needed */
 
-  this->insert_line (++cursor.line, 
-      Line (cursor.line->substr (cursor.col - this->text_col_offset, cursor.line->length ())));
-  cursor.line--;
+  this->insert_line (++this->curr_line, 
+      Line (this->curr_line->substr (cursor.col - this->text_col_offset, this->curr_line->length ())));
+  this->curr_line--;
 
   /* Clip off/delete string from previous line to "move" it */
-  cursor.line--;
-  cursor.line->clip (cursor.col - this->text_col_offset);
-  cursor.line++;
+  this->curr_line--;
+  this->curr_line->clip (cursor.col - this->text_col_offset);
+  this->curr_line++;
 
-  if (cursor.col != this->text_col_offset || !cursor.line->length ())
-    cursor.line->set_mark ('+');
+  if (cursor.col != this->text_col_offset || !this->curr_line->length ())
+    this->curr_line->set_mark ('+');
   cursor.col = this->text_col_offset;
   cursor.row++;
 }
@@ -60,16 +60,16 @@ void TextBox::command_backspace (struct cursor &cursor) {
   if (cursor.col == this->text_col_offset) {
 
     /* must have atleast one line */
-    if (cursor.line == this->begin ())
+    if (this->curr_line == this->begin ())
       return;
 
 
 
-    std::list<Line>::iterator to_be_removed = cursor.line;
-    cursor.line--;
+    std::list<Line>::iterator to_be_removed = this->curr_line;
+    this->curr_line--;
 
     /* update cursor */
-    cursor.col = this->text_col_offset + cursor.line->length ();
+    cursor.col = this->text_col_offset + this->curr_line->length ();
 
     /* move cursor up if deleting at start of text; scroll if needed */
     if (cursor.row == this->text_row_offset) {
@@ -80,7 +80,7 @@ void TextBox::command_backspace (struct cursor &cursor) {
 
     /* modify lines */
     if (to_be_removed->length()) {
-      cursor.line->append (to_be_removed);
+      this->curr_line->append (to_be_removed);
     }
     this->remove_line (to_be_removed);
     return;
@@ -88,13 +88,13 @@ void TextBox::command_backspace (struct cursor &cursor) {
 
 
   /* deleteing just char or entire line */
-  if (cursor.line->length () > 0) {
+  if (this->curr_line->length () > 0) {
     cursor.col--;
-    cursor.line->delete_char (cursor.col - this->text_col_offset);
+    this->curr_line->delete_char (cursor.col - this->text_col_offset);
   } else {
     /* must have atleast one line on display */
     if (this->lines.size () > 1) {
-      this->remove_line (cursor.line++);
+      this->remove_line (this->curr_line++);
       if (cursor.row > this->text_row_offset)
         cursor.row--;
     }
@@ -104,20 +104,20 @@ void TextBox::command_backspace (struct cursor &cursor) {
 bool TextBox::command_down (struct cursor &cursor) {
   bool result = false;
   /* TODO: should be able to scroll down to a full page of empty lines */
-  if (++cursor.line != this->end ()) {
+  if (++this->curr_line != this->end ()) {
     cursor.row++;
     result = true;
   } else {
-    cursor.line--;
+    this->curr_line--;
   }
 
   return result;
 }
 
 bool TextBox::command_up (struct cursor &cursor) {
-  if (cursor.line != this->begin ()) {
+  if (this->curr_line != this->begin ()) {
     cursor.row--;
-    cursor.line--;
+    this->curr_line--;
     return true;
   }
   return false;
@@ -152,22 +152,27 @@ TextBox::TextBox (unsigned _col_offset, unsigned _row_offset, unsigned _width, u
   this->length = _length;
   this->scroll_offset = 0;
   this->jump_dist = _length / 2;
+  this->curr_line = this->lines.begin ();
+  this->saved_row = this->text_row_offset;
+  this->saved_col = this->text_col_offset;
 }
 
 TextBox::TextBox (unsigned _col_offset, unsigned _row_offset, unsigned _width,
     unsigned _length, const std::string &file_name) {
   *this = TextBox (_col_offset, _row_offset, _width, _length);
   this->load_file (file_name);
+  this->curr_line = this->lines.begin ();
 }
 
 
 void TextBox::mount_cursor (struct cursor &cursor) {
-  cursor.row = this->text_row_offset;
-  cursor.col = this->text_col_offset;
-  cursor.line = this->begin ();
+  cursor.row = this->saved_row;
+  cursor.col = this->saved_col;
 }
 
 struct cursor & TextBox::unmount_cursor (struct cursor &cursor) {
+  this->saved_row = cursor.row;
+  this->saved_col = cursor.col;
   return cursor;
 }
 
@@ -224,7 +229,7 @@ void TextBox::do_command (struct cursor &cursor, unsigned command, char c) {
       break;
 
     case RIGHT:
-      if (cursor.col < cursor.line->length() + this->text_col_offset)
+      if (cursor.col < this->curr_line->length() + this->text_col_offset)
         cursor.col++;
       break;
 
@@ -264,15 +269,15 @@ void TextBox::do_command (struct cursor &cursor, unsigned command, char c) {
       this->write_file ();
       break;
     default: // command = TEXT
-      this->marked_lines.push_back (&(*cursor.line));
-      cursor.line->insert_char (c, cursor.col - this->text_col_offset);
+      this->marked_lines.push_back (&(*this->curr_line));
+      this->curr_line->insert_char (c, cursor.col - this->text_col_offset);
       cursor.col++;
   }
 
   /* push back cursor to end of line when moving up or down into
    * no mans land */
-  if (cursor.col - this->text_col_offset > cursor.line->length()) {
-    cursor.col = this->text_col_offset + cursor.line->length();
+  if (cursor.col - this->text_col_offset > this->curr_line->length()) {
+    cursor.col = this->text_col_offset + this->curr_line->length();
   }
 
   /* if cursor needs to scroll text box down */

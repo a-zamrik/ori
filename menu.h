@@ -61,6 +61,8 @@ class Menu : public OriEntity {
     unsigned entries_width;
     unsigned entries_height;
 
+    std::list<MenuEntry>::iterator curr_entry;
+
     /* 
      * Methods -----------------------
      */

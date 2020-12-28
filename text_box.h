@@ -26,6 +26,10 @@ class TextBox : public OriEntity {
     unsigned width;
     unsigned length;
 
+    /* saves cursors position when unmounting */
+    unsigned saved_row;
+    unsigned saved_col;
+
     /* Lines filled with text in TextBox */
     std::list<Line> lines;
 
@@ -42,6 +46,8 @@ class TextBox : public OriEntity {
 
     /* file associated with this TextBox */
     std::string file_name;
+
+    std::list<Line>::iterator curr_line;
 
     /* Methods */
     bool load_file (std::string const&);
