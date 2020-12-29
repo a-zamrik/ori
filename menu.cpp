@@ -20,8 +20,10 @@ Menu::Menu (unsigned _col_offset, unsigned _row_offset, unsigned _width,
   this->jump_dist = _length / 2;
 
   this->entries_width = _width / 4;
-  this->entries_height = _length / 8;
+  this->entries_height = _length;
   this->title = "MENU TITLE PLACE HOLDER";
+  this->default_entry_color = "\033[48;2;175;246;199m\033[48;2;0;0;0m";
+  this->selected_entry_color = "\033[48;2;175;246;199m\033[48;2;50;20;50m";
 }
 
 void Menu::add_entry (MenuEntry entry) {
@@ -40,13 +42,22 @@ void Menu::render () {
       this->title.c_str ());
   curr_row++;
 
-  /* mount colors */
-  printf ("\033[48;2;175;246;199m\033[48;2;0;0;0m");
+  /* Account for scroll offset */
+  for (int i = 0; i < this->scroll_offset; i++) 
+    entry++;
+
+  /* mount default color */
+  printf ("%s", this->default_entry_color.c_str ());
 
   /* for every entry; render it in entry list section */
   while (entry != this->entries.end () && curr_row < this->entries_height + this->row_anchor) {
-    // printf ("\033[%u;%uH", curr_row, this->col_anchor);
-    entry->draw (curr_row, this->col_anchor);
+    if (entry->is_selected ()) {
+      printf ("%s", this->selected_entry_color.c_str ());
+      entry->draw (curr_row, this->col_anchor);
+      printf ("%s", this->default_entry_color.c_str ());
+    } else {
+      entry->draw (curr_row, this->col_anchor);
+    }
     curr_row += entry->get_height ();
     entry++;
   }
@@ -60,6 +71,11 @@ void Menu::command_up (struct cursor &cursor) {
     this->curr_entry->deselect ();
     this->curr_entry--;
     this->curr_entry->select ();
+    this->curr_entry_num--;
+
+    if (this->curr_entry_num < this->scroll_offset)
+      this->scroll_offset--;
+ 
   }
 }
 
@@ -68,6 +84,12 @@ void Menu::command_down (struct cursor &cursor) {
     this->curr_entry->deselect ();
     this->curr_entry++;
     this->curr_entry->select ();
+    this->curr_entry_num++;
+
+    unsigned max_entries_in_view = this->entries_height / this->entries.begin ()->get_height ();
+    /* -1 accouns for header height */
+    if (this->curr_entry_num - this->scroll_offset > max_entries_in_view - 1)
+      this->scroll_offset++;
   }
 }
 
@@ -95,6 +117,8 @@ void Menu::mount_cursor (struct cursor &cursor) {
 
   this->curr_entry = this->entries.begin ();
   this->curr_entry->select ();
+  this->curr_entry_num = 0;
+  this->scroll_offset = 0;
 
 }
 
@@ -118,6 +142,11 @@ Menu::MenuEntry::MenuEntry (unsigned _width, unsigned _height, const std::string
   this->width = _width;
   this->height = _height;
   this->text = _text;
+  this->selected = false;
+}
+
+bool Menu::MenuEntry::is_selected () {
+  return this->selected;
 }
 
 unsigned  Menu::MenuEntry::get_height () {
@@ -144,10 +173,12 @@ void  Menu::MenuEntry::draw (unsigned row_offset, unsigned col_offset) {
 }
 
 void Menu::MenuEntry::select () {
+  this->selected = true;
   this->mark[1] = '*';
 }
 
 void Menu::MenuEntry::deselect () {
+  this->selected = false;
   this->mark[1] = ' ';
 }
 

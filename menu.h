@@ -12,6 +12,7 @@ class Menu : public OriEntity {
     private:
       unsigned width;
       unsigned height;
+      bool selected;
       std::string text;
       std::string mark = "< >";
 
@@ -22,6 +23,7 @@ class Menu : public OriEntity {
       void draw (unsigned, unsigned);
       void select ();
       void deselect ();
+      bool is_selected ();
    };
 
     Menu (unsigned _col_offset, unsigned _row_offset,
@@ -45,7 +47,12 @@ class Menu : public OriEntity {
     unsigned width;
     unsigned length;
 
+    /* Menu title */
     std::string title;
+
+    /* Colors for entries */
+    std::string default_entry_color;
+    std::string selected_entry_color;
 
     /* Lines filled with text in TextBox */
     std::list<MenuEntry> entries;
@@ -62,6 +69,7 @@ class Menu : public OriEntity {
     unsigned entries_height;
 
     std::list<MenuEntry>::iterator curr_entry;
+    unsigned curr_entry_num = 0;
 
     /* 
      * Methods -----------------------

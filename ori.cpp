@@ -10,6 +10,7 @@
 #include "line.h"
 #include "text_box.h"
 #include "menu.h"
+#include "file_explorer.h"
 #include "keybinding.h"
 #include "cursor.h"
 
@@ -22,7 +23,7 @@ static void render (void);
 /* holds rows and coloumns of console */
 struct winsize view_port;
 TextBox* text_box = NULL;
-Menu* menu = NULL;
+FileExplorer* menu = NULL;
 OriEntity* selectedEntity = NULL;
 std::fstream file;
 
@@ -54,11 +55,12 @@ static void initialize (const std::string &file_name) {
   text_box->mount_cursor (cursor); 
   selectedEntity = text_box;
 
-  menu = new Menu (5, 5, view_port.ws_col - 50, view_port.ws_row - 5);
-  menu->add_entry (Menu::MenuEntry (30, 3, "HOW ARE YOU!"));
+  menu = new FileExplorer (5, 5, view_port.ws_col - 5, view_port.ws_row - 50);
+  menu->load_explorer (".");
+  /* menu->add_entry (Menu::MenuEntry (30, 3, "HOW ARE YOU!"));
   menu->add_entry (Menu::MenuEntry (30, 3, "HOWDY!!!"));
   menu->add_entry (Menu::MenuEntry (30, 3, "IAM DOING GREAT"));
-
+*/
 
   /* TODO: add error handling */
   /* Disables stdin echo and buffered I/O */
