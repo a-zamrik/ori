@@ -50,12 +50,12 @@ static void initialize (const std::string &file_name) {
   }
 
   /* TODO: FREE THIS */
-  text_box = new TextBox (1, 2, view_port.ws_col + 1, 
+  text_box = new TextBox (1, 2, view_port.ws_col, 
                           view_port.ws_row - 2, "text.txt");
   text_box->mount_cursor (cursor); 
   selectedEntity = text_box;
 
-  menu = new FileExplorer (5, 5, view_port.ws_col - 5, 10);
+  menu = new FileExplorer (5, 5, view_port.ws_col - 10, view_port.ws_row - 11);
   menu->load_explorer (".");
   /* menu->add_entry (Menu::MenuEntry (30, 3, "HOW ARE YOU!"));
   menu->add_entry (Menu::MenuEntry (30, 3, "HOWDY!!!"));

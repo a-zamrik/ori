@@ -2,13 +2,20 @@
 #define ORI_ENTITY_H
 
 #include "cursor.h"
+#include <string>
 
 class OriEntity {
 
-  private:
+  protected:
+    std::string text_color;
+    std::string background_color;
+
+    /* TODO: This isnot used */
     struct cursor cursor;
 
   public:
+    void set_text_color (unsigned char, unsigned char, unsigned char) ;
+    void set_background_color (unsigned char, unsigned char, unsigned char);
     virtual void render () {}
     virtual void do_command (struct cursor&, unsigned, char) {}
     

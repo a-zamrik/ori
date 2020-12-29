@@ -22,8 +22,8 @@ Menu::Menu (unsigned _col_offset, unsigned _row_offset, unsigned _width,
   this->entries_width = _width / 4;
   this->entries_height = _length;
   this->title = "MENU TITLE PLACE HOLDER";
-  this->default_entry_color = "\033[48;2;175;246;199m\033[48;2;0;0;0m";
-  this->selected_entry_color = "\033[48;2;175;246;199m\033[48;2;50;20;50m";
+  this->default_entry_color = "\033[38;2;246;246;246m\033[48;2;0;0;0m";
+  this->selected_entry_color = "\033[38;2;246;246;246m\033[48;2;50;20;50m";
 }
 
 void Menu::add_entry (MenuEntry entry) {
@@ -33,9 +33,11 @@ void Menu::add_entry (MenuEntry entry) {
 void Menu::load_aux_preview (const std::string &file_name) {
   this->aux_preview = new TextBox (this->col_anchor + this->entries.begin ()->get_width () + 1,
                                     this->row_anchor + 1,
-                                    this->width - (this->entries_width + 1),
+                                    this->width - (this->entries.begin ()->get_width () + 1),
                                     this->length - 2,
                                     file_name);
+  this->aux_preview->set_text_color (246, 246, 246);
+  this->aux_preview->set_background_color (30, 30, 30);
 }
 
 void Menu::destroy_aux_preview () {
@@ -50,7 +52,7 @@ void Menu::render () {
   printf ("\033[%u;%uH", this->entries_row_offset, this->entries_col_offset);
 
   /* print MenuHeader */
-  printf ("\033[48;2;246;246;246m\033[48;2;80;80;100m%-*s", 
+  printf ("\033[38;2;246;246;246m\033[48;2;80;80;100m%-*s", 
       this->width, 
       this->title.c_str ());
   curr_row++;
@@ -76,7 +78,7 @@ void Menu::render () {
   }
 
   /* print footer */
-  printf ("\033[48;2;246;246;246m\033[48;2;80;80;100m\033[%u;%uH%*s",
+  printf ("\033[38;2;246;246;246m\033[48;2;80;80;100m\033[%u;%uH%*s",
           this->row_anchor + this->entries_height,
           this->col_anchor,
           this->width,

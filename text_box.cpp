@@ -6,7 +6,6 @@
 #include <list>
 #include <string>
 
-
 bool TextBox::load_file (std::string const&file_name) {
 
   this->file_name = file_name;
@@ -155,6 +154,9 @@ TextBox::TextBox (unsigned _col_offset, unsigned _row_offset, unsigned _width, u
   this->curr_line = this->lines.begin ();
   this->saved_row = this->text_row_offset;
   this->saved_col = this->text_col_offset;
+  
+  OriEntity::set_text_color (175, 246, 199);
+  OriEntity::set_background_color (40, 40, 0);
 }
 
 TextBox::TextBox (unsigned _col_offset, unsigned _row_offset, unsigned _width,
@@ -307,7 +309,8 @@ void TextBox::render () {
   printf ("\033[%u;%uH", this->text_row_offset, this->text_col_offset);
 
   /* mount colors */
-  printf ("\033[48;2;175;246;199m\033[48;2;40;40;0m");
+  printf ("%s%s", this->text_color.c_str (), this->background_color.c_str ());
+
 
   /* print numbered lines */
   if (this->numbered_lines) {
@@ -327,7 +330,7 @@ void TextBox::render () {
     printf ("\033[%u;%uH", curr_row, this->text_col_offset);
     printf("%s%*s",
         line->get_str (),
-        this->width - line->length () - this->text_col_offset,
+        this->width - line->length () - (this->text_col_offset - this->col_anchor),
         line->get_mark ());
     line++;
     curr_row++;
@@ -341,14 +344,14 @@ void TextBox::render () {
       printf ("%3c%s%*s",
           '*',
           "|",
-          this->width - this->text_col_offset + 1,
+          this->width - (this->text_col_offset - this->col_anchor) + 1,
           " ~ ");
     }
   } else {
     for (; curr_row <= this->text_row_offset + this->length; curr_row++) {
       printf ("\033[%u;%uH", curr_row, this->text_col_offset);
       printf ("%*s",
-          this->width - this->text_col_offset,
+          this->width - (this->text_col_offset - this->col_anchor),
           " ~ ");
     }
   }
