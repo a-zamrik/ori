@@ -30,6 +30,19 @@ void Menu::add_entry (MenuEntry entry) {
   this->entries.push_back (entry);
 }
 
+void Menu::load_aux_preview (const std::string &file_name) {
+  this->aux_preview = new TextBox (this->col_anchor + this->entries.begin ()->get_width () + 1,
+                                    this->row_anchor + 1,
+                                    this->width - (this->entries_width + 1),
+                                    this->length - 2,
+                                    file_name);
+}
+
+void Menu::destroy_aux_preview () {
+  delete this->aux_preview;
+}
+
+
 void Menu::render () {
   std::list<Menu::MenuEntry>::iterator entry = this->entries.begin ();
   /* move cursor to start of text box */
@@ -62,6 +75,25 @@ void Menu::render () {
     entry++;
   }
 
+  /* print footer */
+  printf ("\033[48;2;246;246;246m\033[48;2;80;80;100m\033[%u;%uH%*s",
+          this->row_anchor + this->entries_height,
+          this->col_anchor,
+          this->width,
+          "");
+
+  /* print entries side bar */
+  for (int i = 0; i < this->entries_height; i++) {
+      printf ("\033[%u;%uH%s",
+              this->entries_row_offset + i,
+              this->row_anchor + this->entries.begin ()->get_width (),
+              " ");
+  }
+
+  /* print aux if it exists */
+  if (this->aux_preview)
+    this->aux_preview->render ();
+
   /* reset console to default colors */
   printf ("\033[0m"); 
 }
@@ -75,7 +107,9 @@ void Menu::command_up (struct cursor &cursor) {
 
     if (this->curr_entry_num < this->scroll_offset)
       this->scroll_offset--;
- 
+
+    this->destroy_aux_preview ();  
+    this->load_aux_preview (this->curr_entry->get_str ());
   }
 }
 
@@ -90,6 +124,8 @@ void Menu::command_down (struct cursor &cursor) {
     /* -1 accouns for header height */
     if (this->curr_entry_num - this->scroll_offset > max_entries_in_view - 1)
       this->scroll_offset++;
+    this->destroy_aux_preview ();  
+    this->load_aux_preview (this->curr_entry->get_str ());
   }
 }
 
@@ -119,11 +155,13 @@ void Menu::mount_cursor (struct cursor &cursor) {
   this->curr_entry->select ();
   this->curr_entry_num = 0;
   this->scroll_offset = 0;
+  this->load_aux_preview (this->curr_entry->get_str ());
 
 }
 
 struct cursor& Menu::unmount_cursor (struct cursor &cursor) {
 
+  delete this->aux_preview;
   this->curr_entry->deselect ();
   return cursor;
 
@@ -143,6 +181,10 @@ Menu::MenuEntry::MenuEntry (unsigned _width, unsigned _height, const std::string
   this->height = _height;
   this->text = _text;
   this->selected = false;
+}
+
+const std::string & Menu::MenuEntry::get_str () {
+  return this->text;
 }
 
 bool Menu::MenuEntry::is_selected () {

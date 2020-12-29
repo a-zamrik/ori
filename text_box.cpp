@@ -323,7 +323,7 @@ void TextBox::render () {
 
 
   /* print lines with text within bounds */
-  for (int i = j; i < this->scroll_offset + this->text_row_offset + this->length - 1 && line != this->end (); i++) {
+  for (int i = j; i <= this->scroll_offset + this->length && line != this->end (); i++) {
     printf ("\033[%u;%uH", curr_row, this->text_col_offset);
     printf("%s%*s",
         line->get_str (),

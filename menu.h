@@ -4,6 +4,7 @@
 #include <list>
 #include <string>
 #include "ori_entity.h"
+#include "text_box.h"
 
 class Menu : public OriEntity {
 
@@ -24,6 +25,7 @@ class Menu : public OriEntity {
       void select ();
       void deselect ();
       bool is_selected ();
+      const std::string & get_str ();
    };
 
     Menu (unsigned _col_offset, unsigned _row_offset,
@@ -76,7 +78,11 @@ class Menu : public OriEntity {
      */
     void command_up (struct cursor&);
     void command_down (struct cursor&);
+    void load_aux_preview (const std::string &);
+    void destroy_aux_preview ();
 
+    /* serves as an embed for menus */
+    TextBox* aux_preview = NULL;
 };
 
 #endif

@@ -55,7 +55,7 @@ static void initialize (const std::string &file_name) {
   text_box->mount_cursor (cursor); 
   selectedEntity = text_box;
 
-  menu = new FileExplorer (5, 5, view_port.ws_col - 5, view_port.ws_row - 50);
+  menu = new FileExplorer (5, 5, view_port.ws_col - 5, 10);
   menu->load_explorer (".");
   /* menu->add_entry (Menu::MenuEntry (30, 3, "HOW ARE YOU!"));
   menu->add_entry (Menu::MenuEntry (30, 3, "HOWDY!!!"));
