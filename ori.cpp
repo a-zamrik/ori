@@ -13,6 +13,7 @@
 #include "file_explorer.h"
 #include "keybinding.h"
 #include "cursor.h"
+#include "ori_entity_manager.h"
 
 #define DEBUG
 
@@ -57,10 +58,7 @@ static void initialize (const std::string &file_name) {
 
   menu = new FileExplorer (5, 5, view_port.ws_col - 10, view_port.ws_row - 11);
   menu->load_explorer (".");
-  /* menu->add_entry (Menu::MenuEntry (30, 3, "HOW ARE YOU!"));
-  menu->add_entry (Menu::MenuEntry (30, 3, "HOWDY!!!"));
-  menu->add_entry (Menu::MenuEntry (30, 3, "IAM DOING GREAT"));
-*/
+  OriEntityManager::init (*text_box, *menu);
 
   /* TODO: add error handling */
   /* Disables stdin echo and buffered I/O */

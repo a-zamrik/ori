@@ -2,6 +2,7 @@
 #include <string>
 #include <experimental/filesystem>
 #include "file_explorer.h"
+#include "ori_entity_manager.h"
 
 
 void FileExplorer::load_explorer (const std::string & path) {
@@ -17,6 +18,6 @@ void FileExplorer::load_explorer (const std::string & path) {
 }
 
 void FileExplorer::command_enter () {
-   printf ("\a");
+  OriEntityManager::load_new_text (this->curr_entry->get_str ());
 }
 

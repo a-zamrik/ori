@@ -37,7 +37,7 @@ class Menu : public OriEntity {
     void mount_cursor ();
     struct cursor & unmount_cursor ();
 
- private:
+ protected:
     /* define the top left corner that TextBox is located */
     unsigned entries_col_offset;
     unsigned entries_row_offset;
@@ -71,6 +71,7 @@ class Menu : public OriEntity {
     unsigned entries_width;
     unsigned entries_height;
 
+    /* the currently selected entry */
     std::list<MenuEntry>::iterator curr_entry;
     unsigned curr_entry_num = 0;
 
