@@ -8,8 +8,11 @@ class FileExplorer : public Menu {
 
   using Menu::Menu;
 
+  private:
+    void command_enter (void);
+   
   public:
-
+    
    void load_explorer (const std::string &);
    void load_preview ();
    void destroy_preview ();

@@ -26,6 +26,7 @@ class Menu : public OriEntity {
       void deselect ();
       bool is_selected ();
       const std::string & get_str ();
+      void set_mark (const std::string &);
    };
 
     Menu (unsigned _col_offset, unsigned _row_offset,
@@ -82,6 +83,7 @@ class Menu : public OriEntity {
     void destroy_aux_preview ();
     void command_pgup ();
     void command_pgdown ();
+    virtual void command_enter () {}
 
     /* serves as an embed for menus */
     TextBox* aux_preview = NULL;

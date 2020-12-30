@@ -154,6 +154,7 @@ void Menu::do_command (unsigned command, char c) {
     case RIGHT:
       break;
     case ENTER:
+      this->command_enter ();
       break;
     case PGUP:
       this->command_pgup ();
@@ -242,3 +243,7 @@ void Menu::MenuEntry::deselect () {
   this->mark[1] = ' ';
 }
 
+void Menu::MenuEntry::set_mark (const std::string & _mark) {
+  assert (_mark.length () == 3);
+  this->mark = _mark;
+}

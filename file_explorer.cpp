@@ -7,8 +7,16 @@
 void FileExplorer::load_explorer (const std::string & path) {
 
   for (const auto & entry : std::experimental::filesystem::directory_iterator (path)) {
-    this->add_entry (Menu::MenuEntry (30, 3, entry.path ()));
+    Menu::MenuEntry m_entry = Menu::MenuEntry (30, 3, entry.path ());
+    if (std::experimental::filesystem::is_directory (entry.path ())) {
+      m_entry.set_mark ("[ ]");
+    }
+    this->add_entry (m_entry);
   }
 
+}
+
+void FileExplorer::command_enter () {
+   printf ("\a");
 }
 
