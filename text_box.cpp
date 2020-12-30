@@ -14,9 +14,14 @@ bool TextBox::load_file (std::string const&file_name) {
   std::ifstream working_file (file_name);
 
   if (working_file.is_open ()) {
+    this->lines.clear ();
+    this->cursor.row = this->text_row_offset;
+    this->cursor.col = this->text_col_offset;
+    this->scroll_offset = 0;
     while (getline (working_file, line)) {
       this->add_line (line);
     }
+    this->curr_line = this->lines.begin ();
     working_file.close ();
     return true;
   }

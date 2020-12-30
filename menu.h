@@ -80,7 +80,6 @@ class Menu : public OriEntity {
     void command_up ();
     void command_down ();
     void load_aux_preview (const std::string &);
-    void destroy_aux_preview ();
     void command_pgup ();
     void command_pgdown ();
     virtual void command_enter () {}

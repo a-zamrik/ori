@@ -46,7 +46,6 @@ class TextBox : public OriEntity {
     std::list<Line>::iterator curr_line;
 
     /* Methods */
-    bool load_file (std::string const&);
     bool write_file ();
     void command_new_line ();
     void command_backspace ();
@@ -71,6 +70,7 @@ class TextBox : public OriEntity {
     void render (); 
     void command_scroll_down ();
     void command_scroll_up ();
+    bool load_file (std::string const&);
 };
 
 #endif

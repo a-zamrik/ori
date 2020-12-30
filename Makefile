@@ -1,5 +1,11 @@
-ori: ori.cpp menu.cpp line.cpp line.h text_box.cpp text_box.h ori_entity.cpp ori_entity.h file_explorer.cpp file_explorer.h
-	g++ -std=c++17 ori_entity.cpp menu.cpp text_box.cpp line.cpp ori.cpp file_explorer.cpp -o ori -lstdc++fs -g
+SRC_FILES = ori_entity.cpp menu.cpp text_box.cpp line.cpp ori.cpp file_explorer.cpp ori_entity_manager.cpp
+
+H_FILES = ori_entity.h menu.h text_box.h line.h file_explorer.h ori_entity_manager.h
+
+
+
+ori: $(SRC_FILES) $(H_FILES)
+	g++ -std=c++17 $(SRC_FILES) -o ori -lstdc++fs -g
 
 
 clean:

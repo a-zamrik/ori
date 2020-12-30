@@ -42,10 +42,6 @@ void Menu::load_aux_preview (const std::string &file_name) {
   this->aux_preview->set_background_color (30, 30, 30);
 }
 
-void Menu::destroy_aux_preview () {
-  delete this->aux_preview;
-}
-
 
 void Menu::render () {
   std::list<Menu::MenuEntry>::iterator entry = this->entries.begin ();
@@ -112,8 +108,7 @@ void Menu::command_up () {
     if (this->curr_entry_num < this->scroll_offset)
       this->scroll_offset--;
 
-    this->destroy_aux_preview ();  
-    this->load_aux_preview (this->curr_entry->get_str ());
+    this->aux_preview->load_file (this->curr_entry->get_str ());
   }
 }
 
@@ -128,8 +123,7 @@ void Menu::command_down () {
     /* -1 accouns for header height */
     if (this->curr_entry_num - this->scroll_offset > max_entries_in_view - 1)
       this->scroll_offset++;
-    this->destroy_aux_preview ();  
-    this->load_aux_preview (this->curr_entry->get_str ());
+    this->aux_preview->load_file (this->curr_entry->get_str ());
   }
 }
 

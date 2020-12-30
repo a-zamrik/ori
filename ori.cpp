@@ -27,11 +27,15 @@ FileExplorer* menu = NULL;
 OriEntity* selectedEntity = NULL;
 
 int main () {
+  /* TODO: get cursor coords
+  * stackoverflow.com/questions/5966903/how-to-get-mousemove-and-mouseclick-in-bash/5970472#5970472
+   * printf ("\033[?1000h\033[?1006h\033[?1015h");
+   * */
   initialize ("text.txt");
   render ();
 
   while (user_input ())
-    render ();
+   render ();
 
   return 0;
 }
