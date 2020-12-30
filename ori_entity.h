@@ -16,14 +16,15 @@ class OriEntity {
   public:
     void set_text_color (unsigned char, unsigned char, unsigned char) ;
     void set_background_color (unsigned char, unsigned char, unsigned char);
+    const struct cursor & get_cursor ();
     virtual void render () {}
-    virtual void do_command (struct cursor&, unsigned, char) {}
+    virtual void do_command (unsigned, char) {}
     
     /*  Pure Virtual Functions:
      *    They must be implemented by the child class
      */
-    virtual void mount_cursor (struct cursor&) = 0;
-    virtual struct cursor & unmount_cursor (struct cursor &) = 0;
+    virtual void mount_cursor () = 0;
+    virtual struct cursor & unmount_cursor () = 0;
 };
 
 #endif

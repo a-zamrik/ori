@@ -32,9 +32,9 @@ class Menu : public OriEntity {
           unsigned _width, unsigned _length);
     void add_entry (MenuEntry);
     void render (void);
-    void do_command (struct cursor &, unsigned, char);
-    void mount_cursor (struct cursor &);
-    struct cursor & unmount_cursor (struct cursor &);
+    void do_command (unsigned, char);
+    void mount_cursor ();
+    struct cursor & unmount_cursor ();
 
  private:
     /* define the top left corner that TextBox is located */
@@ -76,10 +76,12 @@ class Menu : public OriEntity {
     /* 
      * Methods -----------------------
      */
-    void command_up (struct cursor&);
-    void command_down (struct cursor&);
+    void command_up ();
+    void command_down ();
     void load_aux_preview (const std::string &);
     void destroy_aux_preview ();
+    void command_pgup ();
+    void command_pgdown ();
 
     /* serves as an embed for menus */
     TextBox* aux_preview = NULL;

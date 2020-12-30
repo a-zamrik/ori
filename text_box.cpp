@@ -6,6 +6,7 @@
 #include <list>
 #include <string>
 
+
 bool TextBox::load_file (std::string const&file_name) {
 
   this->file_name = file_name;
@@ -36,27 +37,27 @@ bool TextBox::write_file () {
   working_file.close ();
 }
 
-void TextBox::command_new_line (struct cursor &cursor) {
+void TextBox::command_new_line () {
   /* TODO: make new line and move over contents if needed */
 
   this->insert_line (++this->curr_line, 
-      Line (this->curr_line->substr (cursor.col - this->text_col_offset, this->curr_line->length ())));
+      Line (this->curr_line->substr (this->cursor.col - this->text_col_offset, this->curr_line->length ())));
   this->curr_line--;
 
   /* Clip off/delete string from previous line to "move" it */
   this->curr_line--;
-  this->curr_line->clip (cursor.col - this->text_col_offset);
+  this->curr_line->clip (this->cursor.col - this->text_col_offset);
   this->curr_line++;
 
-  if (cursor.col != this->text_col_offset || !this->curr_line->length ())
+  if (this->cursor.col != this->text_col_offset || !this->curr_line->length ())
     this->curr_line->set_mark ('+');
-  cursor.col = this->text_col_offset;
-  cursor.row++;
+  this->cursor.col = this->text_col_offset;
+  this->cursor.row++;
 }
 
-void TextBox::command_backspace (struct cursor &cursor) {
+void TextBox::command_backspace () {
   /* backspace at start of line; append line to line above */
-  if (cursor.col == this->text_col_offset) {
+  if (this->cursor.col == this->text_col_offset) {
 
     /* must have atleast one line */
     if (this->curr_line == this->begin ())
@@ -68,13 +69,13 @@ void TextBox::command_backspace (struct cursor &cursor) {
     this->curr_line--;
 
     /* update cursor */
-    cursor.col = this->text_col_offset + this->curr_line->length ();
+    this->cursor.col = this->text_col_offset + this->curr_line->length ();
 
     /* move cursor up if deleting at start of text; scroll if needed */
-    if (cursor.row == this->text_row_offset) {
+    if (this->cursor.row == this->text_row_offset) {
       this->scroll_offset--;
     } else {
-      cursor.row--;
+      this->cursor.row--;
     }
 
     /* modify lines */
@@ -88,23 +89,23 @@ void TextBox::command_backspace (struct cursor &cursor) {
 
   /* deleteing just char or entire line */
   if (this->curr_line->length () > 0) {
-    cursor.col--;
-    this->curr_line->delete_char (cursor.col - this->text_col_offset);
+    this->cursor.col--;
+    this->curr_line->delete_char (this->cursor.col - this->text_col_offset);
   } else {
     /* must have atleast one line on display */
     if (this->lines.size () > 1) {
       this->remove_line (this->curr_line++);
-      if (cursor.row > this->text_row_offset)
-        cursor.row--;
+      if (this->cursor.row > this->text_row_offset)
+        this->cursor.row--;
     }
   }
 }
 
-bool TextBox::command_down (struct cursor &cursor) {
+bool TextBox::command_down () {
   bool result = false;
   /* TODO: should be able to scroll down to a full page of empty lines */
   if (++this->curr_line != this->end ()) {
-    cursor.row++;
+    this->cursor.row++;
     result = true;
   } else {
     this->curr_line--;
@@ -113,9 +114,9 @@ bool TextBox::command_down (struct cursor &cursor) {
   return result;
 }
 
-bool TextBox::command_up (struct cursor &cursor) {
+bool TextBox::command_up () {
   if (this->curr_line != this->begin ()) {
-    cursor.row--;
+    this->cursor.row--;
     this->curr_line--;
     return true;
   }
@@ -145,6 +146,8 @@ TextBox::TextBox (unsigned _col_offset, unsigned _row_offset, unsigned _width, u
 
   this->text_col_offset = _col_offset;
   this->text_row_offset = _row_offset;
+  this->cursor.col = this->text_col_offset;
+  this->cursor.row = this->text_row_offset;
   this->row_anchor = _row_offset;
   this->col_anchor = _col_offset;
   this->width = _width;
@@ -152,9 +155,7 @@ TextBox::TextBox (unsigned _col_offset, unsigned _row_offset, unsigned _width, u
   this->scroll_offset = 0;
   this->jump_dist = _length / 2;
   this->curr_line = this->lines.begin ();
-  this->saved_row = this->text_row_offset;
-  this->saved_col = this->text_col_offset;
-  
+
   OriEntity::set_text_color (175, 246, 199);
   OriEntity::set_background_color (40, 40, 0);
 }
@@ -166,16 +167,13 @@ TextBox::TextBox (unsigned _col_offset, unsigned _row_offset, unsigned _width,
   this->curr_line = this->lines.begin ();
 }
 
-
-void TextBox::mount_cursor (struct cursor &cursor) {
-  cursor.row = this->saved_row;
-  cursor.col = this->saved_col;
+/* Legacy */
+void TextBox::mount_cursor () {
 }
 
-struct cursor & TextBox::unmount_cursor (struct cursor &cursor) {
-  this->saved_row = cursor.row;
-  this->saved_col = cursor.col;
-  return cursor;
+/* Legacy */
+struct cursor & TextBox::unmount_cursor () {
+  return this->cursor;
 }
 
 void TextBox::add_line (std::string str) {
@@ -198,72 +196,85 @@ void TextBox::insert_line (std::list<Line>::iterator it, Line line) {
   lines.insert (it, line);
 }
 
-void TextBox::enable_line_number (struct cursor &cursor) {
+void TextBox::enable_line_number () {
   if (this->numbered_lines)
     return;
 
   this->numbered_lines = true;
   this->text_col_offset += 5;
-  cursor.col += 5;
+  this->cursor.col += 5;
 }
 
-void TextBox::disable_line_number (struct cursor &cursor) {
+void TextBox::disable_line_number () {
   if (!this->numbered_lines)
     return;
 
   this->numbered_lines = false;
   this->text_col_offset -= 5;
-  cursor.col -= 5;
+  this->cursor.col -= 5;
 }
 
-void TextBox::do_command (struct cursor &cursor, unsigned command, char c) {
+void TextBox::command_scroll_down () {
+  if (this->curr_line != --this->lines.end ()) {
+    this->scroll_offset++;
+    if (cursor.row == this->text_row_offset) {
+      this->curr_line++;
+    } else {
+      cursor.row--;
+    }
+  }
+}
+
+void TextBox::command_scroll_up () {
+  if (this->curr_line != this->lines.begin () && this->scroll_offset) {
+    this->scroll_offset--;
+    if (cursor.row == this->text_row_offset + this->length) {
+      this->curr_line--;
+    } else {
+      cursor.row++;
+    }
+  }
+
+}
+
+void TextBox::do_command (unsigned command, char c) {
 
   switch (command) {
     case UP:
-      this->command_up (cursor);
+      this->command_up ();
       break;
     case DOWN:
-      this->command_down (cursor);
+      this->command_down ();
       break;
     case LEFT:
       if (cursor.col > this->text_col_offset)
-        cursor.col--;
+        this->cursor.col--;
       break;
 
     case RIGHT:
-      if (cursor.col < this->curr_line->length() + this->text_col_offset)
-        cursor.col++;
+      if (this->cursor.col < this->curr_line->length() + this->text_col_offset)
+        this->cursor.col++;
       break;
 
     case PGUP:
-      for (int i = 0; i < this->jump_dist && this->command_up (cursor); i++) {
-        if (cursor.row < this->text_row_offset) {
-          this->scroll_offset--;
-          cursor.row++;
-        }
-      }
+      this->command_scroll_up ();
       break;
 
     case PGDOWN:
-      for (int i = 0; i < this->jump_dist && this->command_down (cursor); i++) {
-        if (cursor.row > this->text_row_offset + this->length) {
-          this->scroll_offset++;
-          cursor.row--;
-        }
-      }
+      this->command_scroll_down ();
       break;
 
     case ENTER:
-      this->command_new_line (cursor);
+      this->command_new_line ();
       break;
     case BACKSPACE:
-      this->command_backspace (cursor);
+      this->command_backspace ();
       break;
     case CTRL_L:
       if (this->numbered_lines)
-        this->disable_line_number (cursor);
+        this->disable_line_number ();
       else
-        this->enable_line_number (cursor);
+        this->enable_line_number ();
       break;
 
 
@@ -272,25 +283,25 @@ void TextBox::do_command (struct cursor &cursor, unsigned command, char c) {
       break;
     default: // command = TEXT
       this->marked_lines.push_back (&(*this->curr_line));
-      this->curr_line->insert_char (c, cursor.col - this->text_col_offset);
-      cursor.col++;
+      this->curr_line->insert_char (c, this->cursor.col - this->text_col_offset);
+      this->cursor.col++;
   }
 
   /* push back cursor to end of line when moving up or down into
    * no mans land */
-  if (cursor.col - this->text_col_offset > this->curr_line->length()) {
-    cursor.col = this->text_col_offset + this->curr_line->length();
+  if (this->cursor.col - this->text_col_offset > this->curr_line->length()) {
+    this->cursor.col = this->text_col_offset + this->curr_line->length();
   }
 
   /* if cursor needs to scroll text box down */
-  if (cursor.row > this->text_row_offset + this->length) {
+  if (this->cursor.row > this->text_row_offset + this->length) {
     this->scroll_offset++;
-    cursor.row--;
+    this->cursor.row--;
   }
 
-  if (cursor.row < this->text_row_offset) {
+  if (this->cursor.row < this->text_row_offset) {
     this->scroll_offset--;
-    cursor.row++;
+    this->cursor.row++;
   }
 }
 

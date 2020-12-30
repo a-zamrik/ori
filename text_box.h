@@ -26,10 +26,6 @@ class TextBox : public OriEntity {
     unsigned width;
     unsigned length;
 
-    /* saves cursors position when unmounting */
-    unsigned saved_row;
-    unsigned saved_col;
-
     /* Lines filled with text in TextBox */
     std::list<Line> lines;
 
@@ -52,27 +48,29 @@ class TextBox : public OriEntity {
     /* Methods */
     bool load_file (std::string const&);
     bool write_file ();
-    void command_new_line (struct cursor &);
-    void command_backspace (struct cursor &);
-    bool command_down (struct cursor &);
-    bool command_up (struct cursor &);
+    void command_new_line ();
+    void command_backspace ();
+    bool command_down ();
+    bool command_up ();
     void clear_marked_lines ();
 
   public:
     TextBox (unsigned, unsigned, unsigned, unsigned);
     TextBox (unsigned _col_offset, unsigned _row_offset, unsigned _width,
              unsigned _length, const std::string &);
-    void mount_cursor (struct cursor &);
-    struct cursor & unmount_cursor (struct cursor &);
+    void mount_cursor ();
+    struct cursor & unmount_cursor ();
     void add_line (std::string);
     void remove_line (std::list<Line>::iterator);
     std::list<Line>::iterator begin ();
     std::list<Line>::iterator end ();
     void insert_line (std::list<Line>::iterator, Line);
-    void enable_line_number (struct cursor &);
-    void disable_line_number (struct cursor &);
-    void do_command (struct cursor &, unsigned, char);
+    void enable_line_number ();
+    void disable_line_number ();
+    void do_command (unsigned, char);
     void render (); 
+    void command_scroll_down ();
+    void command_scroll_up ();
 };
 
 #endif

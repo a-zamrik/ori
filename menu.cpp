@@ -12,6 +12,8 @@ Menu::Menu (unsigned _col_offset, unsigned _row_offset, unsigned _width,
 
   this->entries_col_offset = _col_offset;
   this->entries_row_offset = _row_offset;
+  this->cursor.row = this->entries_row_offset;
+  this->cursor.col = this->entries_col_offset;
   this->row_anchor = _row_offset;
   this->col_anchor = _col_offset;
   this->width = _width;
@@ -100,7 +102,7 @@ void Menu::render () {
   printf ("\033[0m"); 
 }
 
-void Menu::command_up (struct cursor &cursor) {
+void Menu::command_up () {
   if (this->curr_entry != this->entries.begin ()) {
     this->curr_entry->deselect ();
     this->curr_entry--;
@@ -115,7 +117,7 @@ void Menu::command_up (struct cursor &cursor) {
   }
 }
 
-void Menu::command_down (struct cursor &cursor) {
+void Menu::command_down () {
   if (this->curr_entry != --this->entries.end ()) {
     this->curr_entry->deselect ();
     this->curr_entry++;
@@ -131,13 +133,21 @@ void Menu::command_down (struct cursor &cursor) {
   }
 }
 
-void Menu::do_command (struct cursor &cursor, unsigned command, char c) {
+void Menu::command_pgdown () {
+  this->aux_preview->command_scroll_down ();
+}
+
+void Menu::command_pgup () {
+  this->aux_preview->command_scroll_up ();
+}
+
+void Menu::do_command (unsigned command, char c) {
   switch (command) {
     case UP:
-      this->command_up (cursor);
+      this->command_up ();
       break;
     case DOWN:
-      this->command_down (cursor);
+      this->command_down ();
       break;
     case LEFT:
       break;
@@ -145,13 +155,19 @@ void Menu::do_command (struct cursor &cursor, unsigned command, char c) {
       break;
     case ENTER:
       break;
+    case PGUP:
+      this->command_pgup ();
+      break;
+    case PGDOWN:
+      this->command_pgdown ();
+      break;
 
     default:
       break;
   }
 }
 
-void Menu::mount_cursor (struct cursor &cursor) {
+void Menu::mount_cursor () {
 
   this->curr_entry = this->entries.begin ();
   this->curr_entry->select ();
@@ -161,11 +177,11 @@ void Menu::mount_cursor (struct cursor &cursor) {
 
 }
 
-struct cursor& Menu::unmount_cursor (struct cursor &cursor) {
+struct cursor& Menu::unmount_cursor () {
 
   delete this->aux_preview;
   this->curr_entry->deselect ();
-  return cursor;
+  return this->cursor;
 
 }
 

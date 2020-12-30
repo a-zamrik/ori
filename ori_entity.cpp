@@ -8,3 +8,6 @@ void OriEntity::set_text_color (unsigned char r, unsigned char g, unsigned char 
   this->text_color = "\033[38;2;" + std::to_string (r) + ";" + std::to_string (g) + ";" + std::to_string (b) + "m";
 }
 
+const struct cursor & OriEntity::get_cursor () {
+  return this->cursor;
+}

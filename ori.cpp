@@ -25,9 +25,6 @@ struct winsize view_port;
 TextBox* text_box = NULL;
 FileExplorer* menu = NULL;
 OriEntity* selectedEntity = NULL;
-std::fstream file;
-
-struct cursor cursor;
 
 int main () {
   initialize ("text.txt");
@@ -36,7 +33,6 @@ int main () {
   while (user_input ())
     render ();
 
-  file.close ();
   return 0;
 }
 
@@ -52,7 +48,7 @@ static void initialize (const std::string &file_name) {
   /* TODO: FREE THIS */
   text_box = new TextBox (1, 2, view_port.ws_col, 
                           view_port.ws_row - 2, "text.txt");
-  text_box->mount_cursor (cursor); 
+  text_box->mount_cursor (); 
   selectedEntity = text_box;
 
   menu = new FileExplorer (5, 5, view_port.ws_col - 10, view_port.ws_row - 11);
@@ -121,11 +117,12 @@ static bool user_input () {
 
     case '\017': /* '^O' */
       if (selectedEntity == text_box) {
-        
-        menu->mount_cursor (selectedEntity->unmount_cursor (cursor));
+        selectedEntity->unmount_cursor ();
+        menu->mount_cursor ();
         selectedEntity = menu;
       } else {
-        text_box->mount_cursor (selectedEntity->unmount_cursor (cursor));
+        selectedEntity->unmount_cursor ();
+        text_box->mount_cursor ();
         selectedEntity = text_box;
       }
       return true;
@@ -151,18 +148,15 @@ static bool user_input () {
       break;
   }
 
-
-
-
-
-  selectedEntity->do_command (cursor, command, c);
+  selectedEntity->do_command (command, c);
   return true;
 }
 
 
 
 static void render () {
-
+  
+  struct cursor cursor;
 
   printf ("\033[0;0H");   /* move cursor to top left cornor */
   printf ("\e[?25l");     /* hide cursor */
@@ -170,7 +164,6 @@ static void render () {
   /* Header. Top Bar */
   printf("\033[38;2;40;40;0m\033[48;2;175;246;199m%sR:%3d C:%3d%*s\n", "[ Ori ]",cursor.row, cursor.col, view_port.ws_col - 18, " ~ ");
   printf("\033[0m");
-
 
   selectedEntity->render ();
 
@@ -182,6 +175,7 @@ static void render () {
   printf("\033[0m");
 
    /* reset cursor to where user wanted it; boolean needed since stdout is not zero index */
+  cursor = selectedEntity->get_cursor ();
   printf ("\033[%u;%uH", cursor.row, cursor.col);
 
   printf ("\e[?25h");     /* show cursor */
