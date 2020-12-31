@@ -1,2 +1,3 @@
-Welcome To Text.txt
-<>
+: D <>
+
+Hey it works kinda well!

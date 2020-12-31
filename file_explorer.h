@@ -9,7 +9,7 @@ class FileExplorer : public Menu {
   using Menu::Menu;
 
   private:
-    void command_enter (void);
+    unsigned command_enter (void);
    
   public:
     

@@ -17,7 +17,8 @@ void FileExplorer::load_explorer (const std::string & path) {
 
 }
 
-void FileExplorer::command_enter () {
+unsigned FileExplorer::command_enter () {
   OriEntityManager::load_new_text (this->curr_entry->get_str ());
+  return ORI_SWAP_ENTITY;
 }
 

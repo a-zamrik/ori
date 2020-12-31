@@ -1,13 +1,29 @@
 #include "text_box.h"
+#include "prompt.h"
 #include "line.h"
 #include "ori_entity.h"
+#include "ori_entity_manager.h"
 #include "keybinding.h"
+#include "ori_codes.h"
 #include "cursor.h"
 #include <list>
 #include <string>
 
 
 bool TextBox::load_file (std::string const&file_name) {
+
+  bool unsaved_changes = false;
+  for (auto& line : this->lines) {
+      if (line.get_mark ()[1] == '+') {
+        unsaved_changes = true;
+        break;
+      }
+  }
+  if (unsaved_changes || this->lines.size () != this->original_lines_size) {
+    this->aux_prompt = load_ok_prompt ("Please save current file first");
+    return false;
+  }
+
 
   this->file_name = file_name;
   std::string line;
@@ -23,6 +39,10 @@ bool TextBox::load_file (std::string const&file_name) {
     }
     this->curr_line = this->lines.begin ();
     working_file.close ();
+    
+    /* TODO: this causes screen to flash */
+    this->render ();
+    this->original_lines_size = this->lines.size ();
     return true;
   }
   return false;
@@ -40,9 +60,19 @@ bool TextBox::write_file () {
   }
 
   working_file.close ();
+  for (auto& line : this->lines) {
+    line.set_mark (' ');
+  }
+
+  this->original_lines_size = this->lines.size ();
+
+  assert (this->aux_prompt == NULL);
+  std::string prompt_title = std::to_string (lines.size ());
+  prompt_title += " lines written to " + this->file_name;
+  this->aux_prompt = load_ok_prompt (prompt_title);
 }
 
-void TextBox::command_new_line () {
+unsigned TextBox::command_enter () {
   /* TODO: make new line and move over contents if needed */
 
   this->insert_line (++this->curr_line, 
@@ -60,13 +90,13 @@ void TextBox::command_new_line () {
   this->cursor.row++;
 }
 
-void TextBox::command_backspace () {
+unsigned TextBox::command_backspace () {
   /* backspace at start of line; append line to line above */
   if (this->cursor.col == this->text_col_offset) {
 
     /* must have atleast one line */
     if (this->curr_line == this->begin ())
-      return;
+      return 0;
 
 
 
@@ -88,7 +118,7 @@ void TextBox::command_backspace () {
       this->curr_line->append (to_be_removed);
     }
     this->remove_line (to_be_removed);
-    return;
+    return 0;
   }
 
 
@@ -106,26 +136,20 @@ void TextBox::command_backspace () {
   }
 }
 
-bool TextBox::command_down () {
-  bool result = false;
+unsigned TextBox::command_down () {
   /* TODO: should be able to scroll down to a full page of empty lines */
   if (++this->curr_line != this->end ()) {
     this->cursor.row++;
-    result = true;
   } else {
     this->curr_line--;
   }
-
-  return result;
 }
 
-bool TextBox::command_up () {
+unsigned TextBox::command_up () {
   if (this->curr_line != this->begin ()) {
     this->cursor.row--;
     this->curr_line--;
-    return true;
   }
-  return false;
 }
 
 void TextBox::clear_marked_lines () {
@@ -242,7 +266,15 @@ void TextBox::command_scroll_up () {
 
 }
 
-void TextBox::do_command (unsigned command, char c) {
+unsigned TextBox::do_command (unsigned command, char c) {
+
+  if (this->aux_prompt) {
+    if (this->aux_prompt->do_command (command, c) == ORI_DESTROY) {
+      delete this->aux_prompt;
+      this->aux_prompt = NULL;
+    }
+    return ORI_NO_OP;
+  }
 
   switch (command) {
     case UP:
@@ -270,7 +302,7 @@ void TextBox::do_command (unsigned command, char c) {
       break;
 
     case ENTER:
-      this->command_new_line ();
+      this->command_enter ();
       break;
     case BACKSPACE:
       this->command_backspace ();
@@ -308,10 +340,18 @@ void TextBox::do_command (unsigned command, char c) {
     this->scroll_offset--;
     this->cursor.row++;
   }
+  
+  return 0;
 }
 
 
 void TextBox::render () {
+  
+  if (this->aux_prompt) {
+    this->aux_prompt->render ();
+    return;
+  }
+
   /* Move to lines that are in view port */
   std::list<Line>::iterator line = this->begin ();
   std::list<Line>::iterator ref_line;

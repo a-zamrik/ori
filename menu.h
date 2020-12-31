@@ -16,9 +16,11 @@ class Menu : public OriEntity {
       bool selected;
       std::string text;
       std::string mark = "< >";
+      unsigned ori_op;
 
     public:
       MenuEntry (unsigned, unsigned, const std::string &text);
+      MenuEntry (unsigned, unsigned, const std::string &text, unsigned);
       unsigned get_height ();
       unsigned get_width ();
       void draw (unsigned, unsigned);
@@ -27,13 +29,14 @@ class Menu : public OriEntity {
       bool is_selected ();
       const std::string & get_str ();
       void set_mark (const std::string &);
+      unsigned get_ori_op ();
    };
 
     Menu (unsigned _col_offset, unsigned _row_offset,
-          unsigned _width, unsigned _length);
+          unsigned _width, unsigned _length, const std::string &_title);
     void add_entry (MenuEntry);
-    void render (void);
-    void do_command (unsigned, char);
+    virtual void render (void);
+    unsigned do_command (unsigned, char);
     void mount_cursor ();
     struct cursor & unmount_cursor ();
 
@@ -78,12 +81,11 @@ class Menu : public OriEntity {
     /* 
      * Methods -----------------------
      */
-    void command_up ();
-    void command_down ();
+    virtual unsigned command_up ();
+    virtual unsigned command_down ();
+    virtual unsigned command_pgup ();
+    virtual unsigned command_pgdown ();
     void load_aux_preview (const std::string &);
-    void command_pgup ();
-    void command_pgdown ();
-    virtual void command_enter () {}
 
     /* serves as an embed for menus */
     TextBox* aux_preview = NULL;

@@ -1,10 +1,11 @@
 #include "menu.h"
+#include "ori_codes.h"
 #include "keybinding.h"
 #include <assert.h>
 #include "cursor.h"
 
 Menu::Menu (unsigned _col_offset, unsigned _row_offset, unsigned _width,
-            unsigned _length) {
+            unsigned _length, const std::string &_title) {
   /* stdout does not use 0 based indexing. Using zero based indexing
    * will break rendering */
   assert (_col_offset > 0);
@@ -23,7 +24,7 @@ Menu::Menu (unsigned _col_offset, unsigned _row_offset, unsigned _width,
 
   this->entries_width = _width / 4;
   this->entries_height = _length;
-  this->title = "MENU TITLE PLACE HOLDER";
+  this->title = _title;
   this->default_entry_color = "\033[38;2;246;246;246m\033[48;2;0;0;0m";
   this->selected_entry_color = "\033[38;2;246;246;246m\033[48;2;50;20;50m";
 }
@@ -98,7 +99,7 @@ void Menu::render () {
   printf ("\033[0m"); 
 }
 
-void Menu::command_up () {
+unsigned Menu::command_up () {
   if (this->curr_entry != this->entries.begin ()) {
     this->curr_entry->deselect ();
     this->curr_entry--;
@@ -110,9 +111,10 @@ void Menu::command_up () {
 
     this->aux_preview->load_file (this->curr_entry->get_str ());
   }
+  return ORI_NO_OP;
 }
 
-void Menu::command_down () {
+unsigned Menu::command_down () {
   if (this->curr_entry != --this->entries.end ()) {
     this->curr_entry->deselect ();
     this->curr_entry++;
@@ -125,41 +127,49 @@ void Menu::command_down () {
       this->scroll_offset++;
     this->aux_preview->load_file (this->curr_entry->get_str ());
   }
+  return ORI_NO_OP;
 }
 
-void Menu::command_pgdown () {
+unsigned Menu::command_pgdown () {
   this->aux_preview->command_scroll_down ();
+  return ORI_NO_OP;
 }
 
-void Menu::command_pgup () {
+unsigned Menu::command_pgup () {
   this->aux_preview->command_scroll_up ();
+  return ORI_NO_OP;
 }
 
-void Menu::do_command (unsigned command, char c) {
+unsigned Menu::do_command (unsigned command, char c) {
+  unsigned ori_return_code = 0;
   switch (command) {
     case UP:
-      this->command_up ();
+      ori_return_code = this->command_up ();
       break;
     case DOWN:
-      this->command_down ();
+      ori_return_code = this->command_down ();
       break;
     case LEFT:
+      ori_return_code = this->command_left ();
       break;
     case RIGHT:
+      ori_return_code = this->command_right ();
       break;
     case ENTER:
-      this->command_enter ();
+      ori_return_code = this->command_enter ();
       break;
     case PGUP:
-      this->command_pgup ();
+      ori_return_code = this->command_pgup ();
       break;
     case PGDOWN:
-      this->command_pgdown ();
+      ori_return_code = this->command_pgdown ();
       break;
 
     default:
       break;
   }
+
+  return ori_return_code;
 }
 
 void Menu::mount_cursor () {
@@ -194,6 +204,13 @@ Menu::MenuEntry::MenuEntry (unsigned _width, unsigned _height, const std::string
   this->height = _height;
   this->text = _text;
   this->selected = false;
+  this->ori_op = ORI_NO_OP;
+}
+
+Menu::MenuEntry::MenuEntry (unsigned _width, unsigned _height,
+                            const std::string &_text, unsigned _ori_op) {
+  *this = MenuEntry (_width, _height, _text);
+  this->ori_op = _ori_op;
 }
 
 const std::string & Menu::MenuEntry::get_str () {
@@ -210,6 +227,10 @@ unsigned  Menu::MenuEntry::get_height () {
 
 unsigned  Menu::MenuEntry::get_width () {
   return this->width;
+}
+
+unsigned Menu::MenuEntry::get_ori_op () {
+  return this->ori_op;
 }
 
 void  Menu::MenuEntry::draw (unsigned row_offset, unsigned col_offset) {
@@ -241,3 +262,4 @@ void Menu::MenuEntry::set_mark (const std::string & _mark) {
   assert (_mark.length () == 3);
   this->mark = _mark;
 }
+

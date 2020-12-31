@@ -45,12 +45,15 @@ class TextBox : public OriEntity {
 
     std::list<Line>::iterator curr_line;
 
+    OriEntity * aux_prompt = NULL; /* used when saving */
+    unsigned original_lines_size = 0;
+
     /* Methods */
     bool write_file ();
-    void command_new_line ();
-    void command_backspace ();
-    bool command_down ();
-    bool command_up ();
+    unsigned command_enter ();
+    unsigned command_backspace ();
+    unsigned command_down ();
+    unsigned command_up ();
     void clear_marked_lines ();
 
   public:
@@ -66,7 +69,7 @@ class TextBox : public OriEntity {
     void insert_line (std::list<Line>::iterator, Line);
     void enable_line_number ();
     void disable_line_number ();
-    void do_command (unsigned, char);
+    unsigned do_command (unsigned, char);
     void render (); 
     void command_scroll_down ();
     void command_scroll_up ();
