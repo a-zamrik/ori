@@ -28,10 +28,12 @@ FileExplorer* menu = NULL;
 OriEntity* selectedEntity = NULL;
 
 int main () {
-  /* TODO: get cursor coords
-  * stackoverflow.com/questions/5966903/how-to-get-mousemove-and-mouseclick-in-bash/5970472#5970472
-   * printf ("\033[?1000h\033[?1006h\033[?1015h");
-   * */
+   /* TODO: get cursor coords
+    * stackoverflow.com/questions/5966903/how-to-get-mousemove-and-mouseclick-in-bash/5970472#5970472
+    * */
+  // TODO: This works!
+  // fprintf (stderr, "\e[?1000h\e[?1006h\e[?1015");
+  // while (1);
   initialize ("text.txt");
   render ();
 
