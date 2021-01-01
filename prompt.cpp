@@ -45,8 +45,8 @@ void Prompt::render () {
       printf ("%s", this->selected_entry_color.c_str ());
       printf ("\033[5m");
       entry->draw (curr_row, curr_col);
-      printf ("%s", this->default_entry_color.c_str ());
       printf ("\033[0m");
+      printf ("%s", this->default_entry_color.c_str ());
     } else {
       entry->draw (curr_row, curr_col);
     }

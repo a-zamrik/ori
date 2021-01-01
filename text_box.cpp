@@ -10,18 +10,29 @@
 #include <string>
 
 
-bool TextBox::load_file (std::string const&file_name) {
 
-  bool unsaved_changes = false;
-  for (auto& line : this->lines) {
-      if (line.get_mark ()[1] == '+') {
-        unsaved_changes = true;
-        break;
-      }
-  }
-  if (unsaved_changes || this->lines.size () != this->original_lines_size) {
-    this->aux_prompt = load_ok_prompt ("Please save current file first");
-    return false;
+
+
+
+bool TextBox::load_file (std::string const&file_name) {
+  
+  
+  /* Only check if user has not already been prompted */
+  if (this->aux_prompt == NULL) {
+    bool unsaved_changes = false;
+    for (auto& line : this->lines) {
+        if (line.get_mark ()[1] == '+') {
+          unsaved_changes = true;
+          break;
+        }
+    }
+    if (unsaved_changes || this->lines.size () != this->original_lines_size) {
+      this->awaiting_file_name = file_name;
+      this->aux_prompt = load_unsaved_changes_prompt (this->file_name 
+                          + " has un saved changes. Would you like to save?");
+      printf ("\a");
+      return false;
+    }
   }
 
 
@@ -66,10 +77,14 @@ bool TextBox::write_file () {
 
   this->original_lines_size = this->lines.size ();
 
-  assert (this->aux_prompt == NULL);
-  std::string prompt_title = std::to_string (lines.size ());
-  prompt_title += " lines written to " + this->file_name;
-  this->aux_prompt = load_ok_prompt (prompt_title);
+  /* there is already a prompt, the unsaved changes prompt, on screen
+   * about saving 
+   */
+  if (this->aux_prompt == NULL) {
+    std::string prompt_title = std::to_string (lines.size ());
+    prompt_title += " lines written to " + this->file_name;
+    this->aux_prompt = load_ok_prompt (prompt_title);
+  }
 }
 
 unsigned TextBox::command_enter () {
@@ -269,9 +284,21 @@ void TextBox::command_scroll_up () {
 unsigned TextBox::do_command (unsigned command, char c) {
 
   if (this->aux_prompt) {
-    if (this->aux_prompt->do_command (command, c) == ORI_DESTROY) {
-      delete this->aux_prompt;
-      this->aux_prompt = NULL;
+    switch (this->aux_prompt->do_command (command, c)) {
+      case ORI_DESTROY: 
+        delete this->aux_prompt;
+        this->aux_prompt = NULL;
+        break;
+
+      /* Cases should be next to each other; Do same thing, but one 
+       * case will save the file */
+      case ORI_WRITE:
+        this->write_file ();
+      case ORI_DONT_WRITE:
+        this->load_file (this->awaiting_file_name);
+        delete this->aux_prompt;
+        this->aux_prompt = NULL;
+        break;
     }
     return ORI_NO_OP;
   }

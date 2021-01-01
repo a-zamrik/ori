@@ -19,6 +19,8 @@ class OriEntityManager {
     static const struct winsize initialize_window ();
     static const struct winsize get_view_port ();
 
+    static void clean_up ();
+
   private:
     static inline FileExplorer * file_explorer;
     static inline TextBox * text_box;
@@ -29,5 +31,6 @@ class OriEntityManager {
 
 /* loads a simple prompt with a single entry that says "OK" */
 Prompt * load_ok_prompt (const std::string &);
+Prompt * load_unsaved_changes_prompt (const std::string &title);
 
 #endif

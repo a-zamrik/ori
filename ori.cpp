@@ -38,6 +38,8 @@ int main () {
   while (user_input ())
     render ();
 
+
+  OriEntityManager::clean_up ();
   return 0;
 }
 

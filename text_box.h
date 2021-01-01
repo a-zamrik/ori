@@ -42,6 +42,9 @@ class TextBox : public OriEntity {
 
     /* file associated with this TextBox */
     std::string file_name;
+    
+    /* next file to load after a unsaved changes prompt is given */
+    std::string awaiting_file_name;
 
     std::list<Line>::iterator curr_line;
 

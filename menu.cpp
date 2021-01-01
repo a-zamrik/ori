@@ -75,6 +75,17 @@ void Menu::render () {
     curr_row += entry->get_height ();
     entry++;
   }
+  /* fill in list with END entry to fill in entry list */
+  entry--;
+  for (; curr_row < this->entries_height + this->row_anchor; curr_row += entry->get_height ()) {
+    if (entry->is_selected ()) {
+      printf ("%s", this->selected_entry_color.c_str ());
+      entry->draw (curr_row, this->col_anchor);
+      printf ("%s", this->default_entry_color.c_str ());
+    } else {
+      entry->draw (curr_row, this->col_anchor);
+    }
+  }
 
   /* print footer */
   printf ("\033[38;2;246;246;246m\033[48;2;80;80;100m\033[%u;%uH%*s",

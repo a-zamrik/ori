@@ -16,7 +16,7 @@ class Menu : public OriEntity {
       bool selected;
       std::string text;
       std::string mark = "< >";
-      unsigned ori_op;
+      unsigned ori_op;  /* what command to do upon return */
 
     public:
       MenuEntry (unsigned, unsigned, const std::string &text);

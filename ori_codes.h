@@ -4,6 +4,7 @@
 enum {
   ORI_NO_OP = 0,
   ORI_WRITE,
+  ORI_DONT_WRITE,
   ORI_SWAP_ENTITY,
   ORI_DESTROY
 };
