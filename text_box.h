@@ -51,6 +51,8 @@ class TextBox : public OriEntity {
     OriEntity * aux_prompt = NULL; /* used when saving */
     unsigned original_lines_size = 0;
 
+    bool color_enabled = true;
+
     /* Methods */
     bool write_file ();
     unsigned command_enter ();

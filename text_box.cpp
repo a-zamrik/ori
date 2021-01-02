@@ -341,6 +341,9 @@ unsigned TextBox::do_command (unsigned command, char c) {
         this->enable_line_number ();
       break;
 
+    case CTRL_H:
+      this->color_enabled = !this->color_enabled;
+      break;
 
     case CTRL_W:
       this->write_file ();
@@ -411,7 +414,10 @@ void TextBox::render () {
   /* print lines with text within bounds */
   for (int i = j; i <= this->scroll_offset + this->length && line != this->end (); i++) {
     printf ("\033[%u;%uH", curr_row, this->text_col_offset);
-    line->draw (this->width  - (this->text_col_offset - this->col_anchor));
+    if (this->color_enabled)
+      line->draw_color (this->width  - (this->text_col_offset - this->col_anchor));
+    else
+      line->draw (this->width  - (this->text_col_offset - this->col_anchor));
     line++;
     curr_row++;
   }

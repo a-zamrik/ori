@@ -87,7 +87,7 @@ bool is_deliminator (char c) {
   return false;
 }
 
-void Line::draw (unsigned width) {
+void Line::draw_color (unsigned width) {
   std::string frame_buffer;
   static bool in_comment = false; // are we drawing in a comment?
 
@@ -146,4 +146,12 @@ void Line::draw (unsigned width) {
         this->mark.c_str ());
 
 
+}
+
+void Line::draw (unsigned width) {
+
+  printf("%s%*s",
+        this->text.c_str (),
+        width  - (unsigned) this->text.length (),
+        this->mark.c_str ());
 }

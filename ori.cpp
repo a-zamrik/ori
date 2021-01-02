@@ -136,6 +136,10 @@ static bool user_input () {
       command = CTRL_W;
       break;
 
+    case 0x08: /* '^H' */
+      command = CTRL_H;
+      break;
+
     default: /* character given */
       command = TEXT;
       break;

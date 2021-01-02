@@ -1,2 +1,10 @@
-"howdy"
-if 
+/* how do they do it */
+
+
+static const struct junk_function (unsigned char c, void int i) {
+  do {
+
+
+  } while (this->is_empty ());
+}
+ 

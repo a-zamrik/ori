@@ -25,6 +25,7 @@ class Line {
     const char* get_mark ();
     void set_mark (char);
     void draw (unsigned);
+    void draw_color (unsigned);
 };
 
 #endif

@@ -16,6 +16,7 @@ enum KeyBinding {
   CTRL_Y,
   CTRL_P,
   CTRL_O,
+  CTRL_H,
   CTRL_W
 };
 
