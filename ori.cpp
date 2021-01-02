@@ -13,6 +13,9 @@
 #include "ori_entity_manager.h"
 #include "prompt.h"
 #include "ori_codes.h"
+#include "key_word.h"
+
+#include <ctime>
 
 #define DEBUG
 
@@ -45,7 +48,7 @@ int main () {
 
 static void initialize (const std::string &file_name) {
 
-
+  init_key_word_map ();
 
   struct winsize view_port = OriEntityManager::initialize_window ();
 
@@ -155,6 +158,10 @@ static bool user_input () {
 
 static void render () {
 
+  static double time_to_render;
+  std::clock_t start;
+  start = std::clock ();
+
   struct cursor cursor = selectedEntity->get_cursor ();
   struct winsize view_port = OriEntityManager::get_view_port ();
 
@@ -162,7 +169,7 @@ static void render () {
   printf ("\e[?25l");     /* hide cursor */
 
   /* Header. Top Bar */
-  printf("\033[38;2;40;40;0m\033[48;2;175;246;199m%sR:%3d C:%3d%*s\n", "[ Ori ]",cursor.row, cursor.col, view_port.ws_col - 18, " ~ ");
+  printf("\033[38;2;40;40;0m\033[48;2;175;246;199m%sR:%3d C:%3d <Render Time: %6.3fms>%*s\n", "[ Ori ]",cursor.row, cursor.col, time_to_render, view_port.ws_col - 18 - 24, " ~ ");
   printf("\033[0m");
 
   selectedEntity->render ();
@@ -178,6 +185,8 @@ static void render () {
   printf ("\033[%u;%uH", cursor.row, cursor.col);
 
   printf ("\e[?25h");     /* show cursor */
+
+  time_to_render = (std::clock () - start) / (double) (CLOCKS_PER_SEC / 1000);
 
 }
 

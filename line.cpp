@@ -1,4 +1,5 @@
 
+#include "key_word.h"
 #include <iostream>
 #include <string.h>
 #include <list>
@@ -72,4 +73,77 @@ bool Line::clip (unsigned pos) {
     this->set_mark ('+');
 }
 
+static inline 
+bool is_deliminator (char c) {
 
+  /* TODO: this string should be somewhere else */
+  std::string delim (" ()\\-");
+
+  for (int i = 0; i < delim.length () + 1; i++) {
+    if (c == delim[i]) {
+      return true;
+    }
+  }
+  return false;
+}
+
+void Line::draw (unsigned width) {
+  std::string frame_buffer;
+  static bool in_comment = false; // are we drawing in a comment?
+
+  /* TODO: Need to create a lexer
+   * comments should not depend on delimantor for highlihgt */
+  std::size_t prev = 0;
+  std::size_t curr = 0;
+  bool in_delim = is_deliminator (this->text[0]);
+  std::string word;
+  KeyWord * key_word = NULL;
+  for (int i = 0; i < this->text.length () + 1; i++) {
+    bool is_delim = is_deliminator (this->text[i]);
+
+    /* exiting delimenator portion and entered start of word */
+    if (!is_delim && in_delim) {
+      in_delim = false;
+      frame_buffer += this->text.substr (prev, i - prev);
+      prev = i;
+    }
+    /* exiting word and entered delimenator portion of text */
+    else if (is_delim && !in_delim) {
+      in_delim = true;
+      word = this->text.substr (prev, i - prev);
+
+      /* if the word is not a keyword, dont add color */
+      if ((key_word = is_keyword (word)) != NULL) {
+        if (key_word->is_end_capped ()) {
+          in_comment = false;
+        }
+        /* dont draw colors if in a comment */
+        if (!in_comment) {
+          frame_buffer += is_keyword (word)->get_color ();
+          frame_buffer += word;
+          /* if capped, place capped color */
+          if (key_word->is_capped ()) {
+            frame_buffer += "\033[38;2;255;255;255m";
+          } else {
+            in_comment = true;
+          }
+          prev = i;
+        }
+      } else {
+        frame_buffer += word;
+        prev = i;
+      }
+    }
+  }
+  if (prev < this->text.length ()) {
+    frame_buffer+=this->text.substr (prev);
+  }
+
+ 
+  printf("%s%*s",
+        frame_buffer.c_str (),
+        width  - (unsigned) this->text.length (),
+        this->mark.c_str ());
+
+
+}

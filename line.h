@@ -24,6 +24,7 @@ class Line {
     std::string substr (unsigned, unsigned);
     const char* get_mark ();
     void set_mark (char);
+    void draw (unsigned);
 };
 
 #endif

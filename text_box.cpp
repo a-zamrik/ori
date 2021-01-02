@@ -200,8 +200,8 @@ TextBox::TextBox (unsigned _col_offset, unsigned _row_offset, unsigned _width, u
   this->jump_dist = _length / 2;
   this->curr_line = this->lines.begin ();
 
-  OriEntity::set_text_color (175, 246, 199);
-  OriEntity::set_background_color (40, 40, 0);
+  OriEntity::set_text_color (255, 255, 255);
+  OriEntity::set_background_color (0, 36, 34);
 }
 
 TextBox::TextBox (unsigned _col_offset, unsigned _row_offset, unsigned _width,
@@ -411,10 +411,7 @@ void TextBox::render () {
   /* print lines with text within bounds */
   for (int i = j; i <= this->scroll_offset + this->length && line != this->end (); i++) {
     printf ("\033[%u;%uH", curr_row, this->text_col_offset);
-    printf("%s%*s",
-        line->get_str (),
-        this->width - line->length () - (this->text_col_offset - this->col_anchor),
-        line->get_mark ());
+    line->draw (this->width  - (this->text_col_offset - this->col_anchor));
     line++;
     curr_row++;
   }
