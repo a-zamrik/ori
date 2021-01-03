@@ -31,5 +31,7 @@ class Line {
     void draw_color (unsigned);
 };
 
+void lexer_reset ();
+
 #endif
 

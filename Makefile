@@ -6,10 +6,24 @@ SRC_FILES = ori_entity.cpp menu.cpp text_box.cpp line.cpp ori.cpp file_explorer.
 
 H_FILES = ori_entity.h menu.h text_box.h line.h file_explorer.h ori_entity_manager.h prompt.h key_word.h
 
+OBJECTS = $(patsubst %.cpp,$(BUILD_DIR)/%.o,$(SRC_FILES))
 
-ori: $(SRC_FILES) $(H_FILES)
-	$(CC) $(SRC_FILES) -o ori $(CCFLAGS)
+BUILD_DIR = ./build
+
+all: dir $(OBJECTS) ori
+
+dir:
+	mkdir -p $(BUILD_DIR)
+
+ori: $(OBJECTS)
+	@echo "\n\n"
+	$(CC) $^ -o $@ $(CCFLAGS)
+
+$(OBJECTS): $(BUILD_DIR)/%.o : ./%.cpp
+	@echo $(OBJECTS)
+	$(CC) -std=c++17 -c $< -o $@
 
 clean:
+	rm -r $(BUILD_DIR)
 	rm ori
 

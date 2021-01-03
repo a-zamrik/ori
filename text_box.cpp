@@ -427,7 +427,7 @@ void TextBox::render () {
     curr_row = this->text_row_offset;
   }
 
-
+  lexer_reset ();
   /* print lines with text within bounds */
   for (int i = j; i <= this->scroll_offset + this->length && line != this->end (); i++) {
     printf ("\033[%u;%uH", curr_row, this->text_col_offset);

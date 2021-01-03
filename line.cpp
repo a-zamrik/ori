@@ -101,10 +101,17 @@ bool is_deliminator (char c) {
   return false;
 }
 
-void Line::draw_color (unsigned width) {
-  static bool in_comment = false; // are we drawing in a comment?
+static bool in_comment = false; // are we drawing in a comment?
+void lexer_reset () {
+  in_comment = false;
+}
 
-  if (!this->frame_cached) {
+void Line::draw_color (unsigned width) {
+
+  /* TODO: make a proper lexer */
+  /* if in comment does not work if this statement is used */
+  // if (!this->frame_cached) {
+  if (1) {
     this->frame_buffer.clear ();
     /* TODO: Need to create a lexer
      * comments should not depend on delimantor for highlihgt */
