@@ -28,6 +28,8 @@ TextBox* text_box = NULL;
 FileExplorer* menu = NULL;
 OriEntity* selectedEntity = NULL;
 
+double input_time;
+
 int main () {
   /* TODO: get cursor coords
    * stackoverflow.com/questions/5966903/how-to-get-mousemove-and-mouseclick-in-bash/5970472#5970472
@@ -35,7 +37,7 @@ int main () {
   // TODO: This works!
   // fprintf (stderr, "\e[?1000h\e[?1006h\e[?1015");
   // while (1);
-  initialize ("text.txt");
+  initialize ("checker.ts");
   render ();
 
   while (user_input ())
@@ -54,7 +56,7 @@ static void initialize (const std::string &file_name) {
 
   /* TODO: FREE THIS */
   text_box = new TextBox (1, 2, view_port.ws_col, 
-      view_port.ws_row - 2, "text.txt");
+      view_port.ws_row - 2, file_name);
   text_box->mount_cursor (); 
   selectedEntity = text_box;
 
@@ -68,6 +70,10 @@ static void initialize (const std::string &file_name) {
 static bool user_input () {
 
   unsigned command;
+
+  std::clock_t start;
+  start = std::clock ();
+
   char c = getchar ();
   switch (c) {
 
@@ -161,6 +167,8 @@ static bool user_input () {
     }
   }
 
+  input_time = (std::clock () - start) / (double) (CLOCKS_PER_SEC / 1000);
+
   return true;
 }
 
@@ -177,7 +185,7 @@ static void render () {
   printf ("\e[?25l");     /* hide cursor */
 
   /* Header. Top Bar */
-  printf("\033[38;2;40;40;0m\033[48;2;175;246;199m%sR:%3d C:%3d <Render Time: %6.3fms>%*s\n", "[ Ori ]",cursor.row, cursor.col, time_to_render, view_port.ws_col - 18 - 24, " ~ ");
+  printf("\033[38;2;40;40;0m\033[48;2;175;246;199m%sR:%3d C:%3d <Render Time: %6.3fms> <Modify Time: %6.3fms>%*s\n", "[ Ori ]",cursor.row, cursor.col, time_to_render, input_time, view_port.ws_col - 18 - 24 - 24, " ~ ");
   printf("\033[0m");
 
   selectedEntity->render ();

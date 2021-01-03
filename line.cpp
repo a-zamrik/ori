@@ -24,6 +24,16 @@ Line::Line (char* _text) {
 
 Line::Line (std::string _text) {
   this->text = _text;
+  for (int i = 0; i < this->text.length (); i++) {
+    /* TODO: should not change user text */
+    if (this->text[i] == '\t') {
+      this->text.replace (i, 1, 2 - (i % 2), ' ');
+    }
+    if (this->text[i] == '\r') {
+      this->text.erase (i, 1);
+    }
+
+  }
 }
 
 Line::Line () {

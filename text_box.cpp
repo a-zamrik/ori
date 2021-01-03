@@ -322,9 +322,17 @@ unsigned TextBox::do_command (unsigned command, char c) {
 
     case PGUP:
       this->command_scroll_up ();
+      this->command_scroll_up ();
+      this->command_scroll_up ();
+      this->command_scroll_up ();
+      this->command_scroll_up ();
       break;
 
     case PGDOWN:
+      this->command_scroll_down ();
+      this->command_scroll_down ();
+      this->command_scroll_down ();
+      this->command_scroll_down ();
       this->command_scroll_down ();
       break;
 
