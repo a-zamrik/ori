@@ -55,9 +55,6 @@ void init_key_word_map () {
   /*value = KeyWord (185, 109, 64, false, true);
   key_word_map["\""] = value;*/
 
-
-
-
   value = KeyWord (171, 146, 191, true);
   key_word_map["bool"] = value;
   key_word_map["signed"] = value;

@@ -8,6 +8,9 @@ class Line {
   private:
     std::string text;
     std::string mark = "[ ]";
+
+    std::string frame_buffer;
+    bool frame_cached = false;
   
   public:
     Line (char*);

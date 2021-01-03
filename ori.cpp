@@ -140,6 +140,10 @@ static bool user_input () {
       command = CTRL_H;
       break;
 
+    case '\t': /* TAB */
+      command = TAB;
+      break;
+
     default: /* character given */
       command = TEXT;
       break;

@@ -344,10 +344,19 @@ unsigned TextBox::do_command (unsigned command, char c) {
     case CTRL_H:
       this->color_enabled = !this->color_enabled;
       break;
-
     case CTRL_W:
-      this->write_file ();
+      this->write_file (); 
       break;
+    case TAB:
+      {
+      int num_spaces  = 2 - ((this->text_col_offset - this->cursor.col) % 2);
+
+      for (int i = 0; i < num_spaces; i++) {
+        this->curr_line->insert_char (' ', this->cursor.col - this->text_col_offset);
+        this->cursor.col++;
+      }
+      break;
+      }
     default: // command = TEXT
       this->marked_lines.push_back (&(*this->curr_line));
       this->curr_line->insert_char (c, this->cursor.col - this->text_col_offset);

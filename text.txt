@@ -1,10 +1,8 @@
-/* how do they do it */
+#include <iostream>
 
+int main () {
+  
+  std::cout << "hello_world" << std::endl;
 
-static const struct junk_function (unsigned char c, void int i) {
-  do {
-
-
-  } while (this->is_empty ());
-}
- 
+  return 0;
+} 

@@ -12,6 +12,7 @@ enum KeyBinding {
   PGUP,
   ENTER,
   BACKSPACE,
+  TAB,
   CTRL_L,
   CTRL_Y,
   CTRL_P,
