@@ -1,8 +1,18 @@
-#include <iostream>
+#in
+clude <ios
+tream
+>
 
-int main () {
+
+
+
+int mai
+n (
+) {
+
   
-  std::cout << "hello_world" << std::endl;
+  std::cout << "hello_wo
+rld" << std::endl;
 
   return 0;
 } 

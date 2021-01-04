@@ -53,6 +53,13 @@ class TextBox : public OriEntity {
 
     bool color_enabled = true;
 
+    /* stores the original file. Will only be loaded once
+     * used by piece list lines */
+    std::string read_only_buffer;
+
+    /* all user input will be appended to this buffer */
+    std::string write_buffer;
+
     /* Methods */
     bool write_file ();
     unsigned command_enter ();

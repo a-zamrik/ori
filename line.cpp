@@ -13,6 +13,21 @@ void Line::set_mark (char c) {
   this->mark[1] = c;
 }
 
+Line::Line (bool _from_read_only, size_t _pos, size_t _length) {
+
+  struct file_piece piece;
+  piece.from_read_only = _from_read_only;
+  piece.pos = _pos;
+  piece.length = _length;
+
+  this->pieces = new std::list<struct file_piece> ();
+  this->pieces->push_back (piece);
+}
+
+Line::Line (std::list<struct file_piece> * _pieces) {
+  this->pieces = _pieces;
+}
+
 Line::Line (std::string &text, std::string &mark) {
   this->text = std::string (text);
   this->mark = std::string (mark);
@@ -53,12 +68,70 @@ std::string Line::substr (unsigned pos, unsigned length) {
 }
 
 unsigned Line::length () {
-  return this->text.length ();
+  unsigned length = 0;
+  for (auto piece : *this->pieces)
+    length += piece.length;
+
+  return length;
 }
 
-void Line::insert_char (char c, unsigned pos) {
+void Line::insert_char (unsigned pos, size_t buffer_pos) {
+
+
+  std::list<struct file_piece>::iterator pit;
+  for (pit = this->pieces->begin (); pit != pieces->end (); pit++) {
+    if (pit->length >= pos) {
+      break;
+    }
+    pos -= pit->length;
+  }
+
+  if (pit == pieces->end ())
+    pit--;
+
+  /* inserting new leading piece */
+  if (pos == 0) {
+    struct file_piece new_piece;
+    new_piece.from_read_only = false;
+    new_piece.pos = buffer_pos;
+    new_piece.length = 1;
+    pieces->insert (pit, new_piece);
+
+  }
+
+  /* adding to end of line */
+  else if (pos == pit->length) {
+    struct file_piece new_piece;
+    new_piece.from_read_only = false;
+    new_piece.pos = buffer_pos;
+    new_piece.length = 1;
+    pieces->insert (++pit, new_piece);
+  }
+
+  /* need to split a piece */
+  else {
+    bool second_origin = pit->from_read_only;
+    size_t second_length = pit->length - pos;
+    // clip prev piece
+    pit->length = pos;
+    size_t second_pos = pit->length + pit->pos;
+    
+    
+    struct file_piece new_piece;
+    new_piece.from_read_only = false;
+    new_piece.pos = buffer_pos;
+    new_piece.length = 1;
+    pieces->insert (++pit, new_piece);
+
+    new_piece.from_read_only = second_origin;
+    new_piece.pos = second_pos;
+    new_piece.length = second_length;
+    pieces->insert (pit, new_piece);
+  }
+  
   this->set_mark ('+');
-  this->text.insert (pos, std::string (1, c));
+  
+
   this->frame_cached = false;
 }
 
@@ -79,12 +152,48 @@ void Line::delete_char (unsigned pos) {
 }
 
 // return true if line changed
-bool Line::clip (unsigned pos) {
-  unsigned old_length = this->text.length();
-  this->text.erase (pos, this->text.length ());
-  if (old_length != text.length ())
-    this->set_mark ('+');
+std::list<struct file_piece> * Line::clip (unsigned pos) {
+  /* TODO: set mark to + if changed */
+  std::list<struct file_piece>::iterator pit;
+  for (pit = this->pieces->begin (); pit != pieces->end (); pit++) {
+    if (pit->length >= pos) {
+      break;
+    }
+    pos -= pit->length;
+  }
+
+  if (pit == pieces->end ())
+    pit--;
+
+  std::list<struct file_piece>* result = new std::list<struct file_piece> ();
+  if (pos == 0) {
+    std::list<struct file_piece>* temp;
+    temp = this->pieces;
+    this->pieces = result;
+    return temp;
+  }
+
+  /* cliping at end of line */
+  else if (pos == pit->length) {
+  }
+
+  /* need to split a piece */
+  else {
+    bool second_origin = pit->from_read_only;
+    size_t second_length = pit->length - pos;
+    // clip prev piece
+    pit->length = pos;
+    size_t second_pos = pit->length + pit->pos;
+     
+    struct file_piece new_piece;
+    new_piece.from_read_only = second_origin;
+    new_piece.pos = second_pos;
+    new_piece.length = second_length;
+    result->push_back (new_piece);
+  }
+
   this->frame_cached = false;
+  return result;
 }
 
 static inline 
@@ -106,7 +215,23 @@ void lexer_reset () {
   in_comment = false;
 }
 
-void Line::draw_color (unsigned width) {
+std::string & Line::pieces_to_string (const std::string &read_buffer,
+                                      const std::string &write_buffer) {
+  this->text.clear ();
+  for (const auto piece : *this->pieces) {
+    if (piece.from_read_only) {
+      this->text += read_buffer.substr (piece.pos, piece.length);
+    } else {
+      this->text += write_buffer.substr (piece.pos, piece.length);
+    }
+  }
+  return this->text;
+}
+
+void Line::draw_color (unsigned width, const std::string &r_buf,
+                       const std::string &w_buf) {
+
+  this->pieces_to_string (r_buf, w_buf);
 
   /* TODO: make a proper lexer */
   /* if in comment does not work if this statement is used */

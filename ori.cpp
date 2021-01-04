@@ -37,7 +37,7 @@ int main () {
   // TODO: This works!
   // fprintf (stderr, "\e[?1000h\e[?1006h\e[?1015");
   // while (1);
-  initialize ("checker.ts");
+  initialize ("text.txt");
   render ();
 
   while (user_input ())

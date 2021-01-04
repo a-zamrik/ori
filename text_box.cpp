@@ -45,8 +45,11 @@ bool TextBox::load_file (std::string const&file_name) {
     this->cursor.row = this->text_row_offset;
     this->cursor.col = this->text_col_offset;
     this->scroll_offset = 0;
+    size_t pos = 0;
     while (getline (working_file, line)) {
-      this->add_line (line);
+      this->read_only_buffer += line;
+      this->lines.push_back (Line (true, pos, line.length ()));
+      pos += line.length ();
     }
     this->curr_line = this->lines.begin ();
     working_file.close ();
@@ -91,13 +94,9 @@ unsigned TextBox::command_enter () {
   /* TODO: make new line and move over contents if needed */
 
   this->insert_line (++this->curr_line, 
-      Line (this->curr_line->substr (this->cursor.col - this->text_col_offset, this->curr_line->length ())));
+      Line (this->curr_line->clip (this->cursor.col - this->text_col_offset)));
   this->curr_line--;
 
-  /* Clip off/delete string from previous line to "move" it */
-  this->curr_line--;
-  this->curr_line->clip (this->cursor.col - this->text_col_offset);
-  this->curr_line++;
 
   if (this->cursor.col != this->text_col_offset || !this->curr_line->length ())
     this->curr_line->set_mark ('+');
@@ -360,14 +359,18 @@ unsigned TextBox::do_command (unsigned command, char c) {
       int num_spaces  = 2 - ((this->text_col_offset - this->cursor.col) % 2);
 
       for (int i = 0; i < num_spaces; i++) {
-        this->curr_line->insert_char (' ', this->cursor.col - this->text_col_offset);
+        this->write_buffer += ' ';
+        this->curr_line->insert_char (this->cursor.col - this->text_col_offset,
+            this->write_buffer.length () - 1);
         this->cursor.col++;
       }
       break;
       }
     default: // command = TEXT
       this->marked_lines.push_back (&(*this->curr_line));
-      this->curr_line->insert_char (c, this->cursor.col - this->text_col_offset);
+      this->write_buffer += c;
+      this->curr_line->insert_char (this->cursor.col - this->text_col_offset, 
+          this->write_buffer.length () - 1);
       this->cursor.col++;
   }
 
@@ -432,7 +435,8 @@ void TextBox::render () {
   for (int i = j; i <= this->scroll_offset + this->length && line != this->end (); i++) {
     printf ("\033[%u;%uH", curr_row, this->text_col_offset);
     if (this->color_enabled)
-      line->draw_color (this->width  - (this->text_col_offset - this->col_anchor));
+      line->draw_color (this->width  - (this->text_col_offset - this->col_anchor),
+          this->read_only_buffer, this->write_buffer);
     else
       line->draw (this->width  - (this->text_col_offset - this->col_anchor));
     line++;

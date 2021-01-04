@@ -21,7 +21,7 @@ ori: $(OBJECTS)
 
 $(OBJECTS): $(BUILD_DIR)/%.o : ./%.cpp
 	@echo $(OBJECTS)
-	$(CC) -std=c++17 -c $< -o $@
+	$(CC) -std=c++17 -c $< -o $@ -g
 
 clean:
 	rm -r $(BUILD_DIR)
