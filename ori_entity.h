@@ -23,6 +23,7 @@ class OriEntity {
     virtual unsigned command_backspace () {return ORI_NO_OP;}
 
   public:
+    virtual ~OriEntity () = default;
     void set_text_color (unsigned char, unsigned char, unsigned char) ;
     void set_background_color (unsigned char, unsigned char, unsigned char);
     const struct cursor & get_cursor ();

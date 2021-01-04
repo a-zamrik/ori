@@ -5,12 +5,23 @@
 #include <list>
 #include "line.h"
 
+void Line::unmount () {
+  this->piece_mounted = false;
+}
+
 const char* Line::get_mark () {
   return this->mark.c_str ();
 }
 
 void Line::set_mark (char c) {
   this->mark[1] = c;
+}
+
+Line::~Line () {
+  if (pieces) {
+    delete pieces;
+    this->pieces = NULL;
+  }
 }
 
 Line::Line (bool _from_read_only, size_t _pos, size_t _length) {
@@ -55,11 +66,16 @@ Line::Line () {
   this->text = strdup ("/DEBUG/");
 }
 
-const char *Line::get_str () {
+const char *Line::get_str (const std::string &r_buf,
+                           const std::string &w_buf) {
+
+  this->pieces_to_string (r_buf, w_buf);
   return this->text.c_str();
 }
 
-const std::string Line::get_str_obj () {
+const std::string Line::get_str_obj (const std::string &r_buf, 
+                                     const std::string &w_buf) {
+  this->pieces_to_string (r_buf, w_buf);
   return this->text;
 }
 
@@ -101,11 +117,18 @@ void Line::insert_char (unsigned pos, size_t buffer_pos) {
 
   /* adding to end of line */
   else if (pos == pit->length) {
-    struct file_piece new_piece;
-    new_piece.from_read_only = false;
-    new_piece.pos = buffer_pos;
-    new_piece.length = 1;
-    pieces->insert (++pit, new_piece);
+    /* if this piece is currently being appended to by user;
+     * dont make a new piece */
+    if (piece_mounted && pit->from_read_only == false) {
+      pit->length++;
+    } else {
+      struct file_piece new_piece;
+      new_piece.from_read_only = false;
+      new_piece.pos = buffer_pos;
+      new_piece.length = 1;
+      pieces->insert (++pit, new_piece);
+      piece_mounted = true;
+    }
   }
 
   /* need to split a piece */
@@ -135,18 +158,55 @@ void Line::insert_char (unsigned pos, size_t buffer_pos) {
   this->frame_cached = false;
 }
 
-void Line::append (std::list<Line>::iterator &line) {
-  if (line->length ()) {
-    if (this->length ()) {
-      this->set_mark ('+');
-    }
-    this->text.append (line->get_str_obj ());
-  }
+void Line::append (std::list<Line*>::iterator &line) {
+
+  
+  std::list<struct file_piece>::iterator pit;
+  for (pit = (*line)->pieces->begin (); pit != (*line)->pieces->end (); pit++)
+    this->pieces->push_back (*pit);
+    
   this->frame_cached = false;
 }
 
 void Line::delete_char (unsigned pos) {
-  this->text.erase (pos, 1);
+  
+  std::list<struct file_piece>::iterator pit;
+  for (pit = this->pieces->begin (); pit != pieces->end (); pit++) {
+    if (pit->length > pos) {
+      break;
+    }
+    pos -= pit->length;
+  }
+
+  if (pit == pieces->end ())
+    pit--;
+
+
+  /* deleting at end of line */
+  else if (pos == pit->length - 1) {
+    pit->length--;
+  }
+
+  else if (pos == 0) {
+    pit->pos++;
+    pit->length--;
+
+  }
+
+  /* need to split a piece */
+  else {
+    struct file_piece new_piece;
+    new_piece.from_read_only = pit->from_read_only;
+    new_piece.length = pit->length - pos - 1;
+    new_piece.pos = pit->pos + pos + 1;
+
+    pit->length = pos;
+
+    this->pieces->insert (++pit, new_piece);
+  }
+
+
+  piece_mounted = false;
   this->set_mark ('+');
   this->frame_cached = false;
 }
@@ -173,8 +233,13 @@ std::list<struct file_piece> * Line::clip (unsigned pos) {
     return temp;
   }
 
-  /* cliping at end of line */
+  /* cliping at end of piece */
   else if (pos == pit->length) {
+    pit++;
+    while (pit != this->pieces->end ()) {
+      result->push_back (*pit);
+      this->pieces->erase (pit++);
+    }
   }
 
   /* need to split a piece */
@@ -296,7 +361,9 @@ void Line::draw_color (unsigned width, const std::string &r_buf,
 
 }
 
-void Line::draw (unsigned width) {
+void Line::draw (unsigned width, const std::string &r_buf,
+                       const std::string &w_buf) {
+  this->pieces_to_string (r_buf, w_buf);
 
   printf("%s%*s",
         this->text.c_str (),

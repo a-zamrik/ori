@@ -1,18 +1,8 @@
-#in
-clude <ios
-tream
->
+Hello 
 
 
 
-
-int mai
-n (
-) {
+for (int i = 0; i < sizeof (me); i++) {
 
   
-  std::cout << "hello_wo
-rld" << std::endl;
-
-  return 0;
-} 
+}

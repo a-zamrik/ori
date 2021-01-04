@@ -29,18 +29,28 @@ Menu::Menu (unsigned _col_offset, unsigned _row_offset, unsigned _width,
   this->selected_entry_color = "\033[38;2;246;246;246m\033[48;2;50;20;50m";
 }
 
+Menu::~Menu () {
+  if (this->aux_preview)
+    delete aux_preview;
+}
+
 void Menu::add_entry (MenuEntry entry) {
   this->entries.push_back (entry);
 }
 
 void Menu::load_aux_preview (const std::string &file_name) {
-  this->aux_preview = new TextBox (this->col_anchor + this->entries.begin ()->get_width () + 1,
+  if (this->aux_preview != NULL) {
+    this->aux_preview ->load_file (file_name);
+  } else {
+
+    this->aux_preview = new TextBox (this->col_anchor + this->entries.begin ()->get_width () + 1,
                                     this->row_anchor + 1,
                                     this->width - (this->entries.begin ()->get_width () + 1),
                                     this->length - 2,
                                     file_name);
-  this->aux_preview->set_text_color (246, 246, 246);
-  this->aux_preview->set_background_color (30, 30, 30);
+    this->aux_preview->set_text_color (246, 246, 246);
+    this->aux_preview->set_background_color (30, 30, 30);
+  }
 }
 
 
@@ -190,12 +200,11 @@ void Menu::mount_cursor () {
   this->curr_entry_num = 0;
   this->scroll_offset = 0;
   this->load_aux_preview (this->curr_entry->get_str ());
-
+  
 }
 
 struct cursor& Menu::unmount_cursor () {
 
-  delete this->aux_preview;
   this->curr_entry->deselect ();
   return this->cursor;
 

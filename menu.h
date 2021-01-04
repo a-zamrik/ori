@@ -34,6 +34,7 @@ class Menu : public OriEntity {
 
     Menu (unsigned _col_offset, unsigned _row_offset,
           unsigned _width, unsigned _length, const std::string &_title);
+    ~Menu ();
     void add_entry (MenuEntry);
     virtual void render (void);
     unsigned do_command (unsigned, char);
