@@ -67,6 +67,7 @@ class TextBox : public OriEntity {
     unsigned command_backspace ();
     unsigned command_down ();
     unsigned command_up ();
+    void command_undo ();
 
     void clean_up ();
 

@@ -91,8 +91,26 @@ unsigned Line::length () {
   return length;
 }
 
+
+/* adds a blank struct redo to redo stack. Used when adding brand new
+ * picese to a line */
+void add_blank_redo (std::stack<struct redo> *st, struct file_piece* location) {
+
+  struct redo redo;
+  redo.old_piece.from_read_only = false;
+  redo.old_piece.pos = 0;
+  redo.old_piece.length = 0;
+
+  redo.piece_location = location;
+  redo.aux_location = NULL;
+  redo.second_aux_location = NULL;
+
+  st->push (redo);
+  
+}
+
 void Line::insert_char (unsigned pos, size_t buffer_pos, 
-                        std::stack<struct redo> redo_stack) {
+                        std::stack<struct redo>* redo_stack) {
 
 
   std::list<struct file_piece>::iterator pit;
@@ -114,6 +132,8 @@ void Line::insert_char (unsigned pos, size_t buffer_pos,
     new_piece.length = 1;
     pieces->insert (pit, new_piece);
 
+    pit--;
+    add_blank_redo (redo_stack, &*pit);
   }
 
   /* adding to end of line */
@@ -128,33 +148,45 @@ void Line::insert_char (unsigned pos, size_t buffer_pos,
       new_piece.pos = buffer_pos;
       new_piece.length = 1;
       pieces->insert (++pit, new_piece);
-      piece_mounted = true;
+      
+      pit--;
+      add_blank_redo (redo_stack, &*pit);
     }
   }
 
   /* need to split a piece */
   else {
+    struct file_piece *left_fp = &*pit;
+
     bool second_origin = pit->from_read_only;
     size_t second_length = pit->length - pos;
     // clip prev piece
     pit->length = pos;
     size_t second_pos = pit->length + pit->pos;
     
-    
+    /* add new piece */
     struct file_piece new_piece;
     new_piece.from_read_only = false;
     new_piece.pos = buffer_pos;
     new_piece.length = 1;
     pieces->insert (++pit, new_piece);
+    pit--;
+    add_blank_redo (redo_stack, &*pit);
 
     new_piece.from_read_only = second_origin;
     new_piece.pos = second_pos;
     new_piece.length = second_length;
-    pieces->insert (pit, new_piece);
+    pieces->insert (++pit, new_piece);
+    pit--;
+
+    /* add split piece to redo stack so that it can be put back together */
+    redo_stack->top ().aux_location = left_fp;
+    redo_stack->top ().second_aux_location = &*pit;
   }
   
   this->set_mark ('+');
   
+  this->piece_mounted = true;
 
   this->frame_cached = false;
 }

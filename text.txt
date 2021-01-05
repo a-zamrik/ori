@@ -4,3 +4,8 @@ interesting problems. Its almost complete. I just want to implement undo and red
 Afterwards, I would like to then make a lexer to have better text hightlighting.
 
 fun
+
+
+
+
+Things are working!!!!

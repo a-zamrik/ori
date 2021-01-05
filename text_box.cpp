@@ -12,6 +12,7 @@
 
 
 void TextBox::clean_up () {
+
   for (auto &l : this->lines)
     delete l;
 
@@ -31,8 +32,37 @@ TextBox::~TextBox () {
     if (this->aux_prompt) {
       delete this->aux_prompt;
     }
+
 }
 
+/* Undo the last command done by the user */
+void TextBox::command_undo () {
+
+  if (this->undo_stack.size () == 0)
+    return;
+
+
+  struct redo undo = this->undo_stack.top ();
+  this->undo_stack.pop ();
+
+  struct file_piece* fp = undo.piece_location;
+
+  fp->pos = undo.old_piece.pos;
+  fp->length = undo.old_piece.length;
+
+  /* the piece we undid split another piece: need to combine the split
+   * piece back into one */
+  if (undo.second_aux_location) {
+    struct file_piece* right_fp = undo.second_aux_location;
+    struct file_piece* left_fp = undo.aux_location;
+
+    assert (left_fp != NULL);
+
+    left_fp->length += right_fp->length;
+    right_fp->length = 0;
+
+  }
+}
 
 bool TextBox::load_file (std::string const&file_name) {
   
@@ -373,15 +403,18 @@ unsigned TextBox::do_command (unsigned command, char c) {
       for (int i = 0; i < num_spaces; i++) {
         this->write_buffer += ' ';
         (*this->curr_line)->insert_char (this->cursor.col - this->text_col_offset,
-            this->write_buffer.length () - 1, this->undo_stack);
+            this->write_buffer.length () - 1, &this->undo_stack);
         this->cursor.col++;
       }
       break;
       }
+    case CTRL_U:
+      this->command_undo ();
+      break;
     default: // command = TEXT
       this->write_buffer += c;
       (*this->curr_line)->insert_char (this->cursor.col - this->text_col_offset, 
-          this->write_buffer.length () - 1, this->undo_stack);
+          this->write_buffer.length () - 1, &this->undo_stack);
       this->cursor.col++;
   }
 

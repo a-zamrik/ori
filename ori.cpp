@@ -31,6 +31,7 @@ OriEntity* selectedEntity = NULL;
 
 double input_time;
 
+
 int main () {
   /* TODO: get cursor coords
    * stackoverflow.com/questions/5966903/how-to-get-mousemove-and-mouseclick-in-bash/5970472#5970472
@@ -150,6 +151,10 @@ static bool user_input () {
 
     case '\t': /* TAB */
       command = TAB;
+      break;
+    
+    case '\025': /* ^U */
+      command = CTRL_U;
       break;
 
     default: /* character given */

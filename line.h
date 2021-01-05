@@ -15,6 +15,7 @@ struct redo {
   struct file_piece old_piece;  // old data
   struct file_piece* piece_location;  // the piece that needs to be set to old_piece
   struct file_piece* aux_location; // if aux_location is not NULL, Zero it
+  struct file_piece* second_aux_location; // if not NULL, append to aux_location
 };
 
 class Line {
@@ -49,7 +50,7 @@ class Line {
     const std::string get_str_obj (const std::string &r_buf,
                                    const std::string &w_buf); 
     unsigned length ();
-    void insert_char (unsigned, size_t, std::stack<struct redo>);
+    void insert_char (unsigned, size_t, std::stack<struct redo>*);
     void append (std::list<Line*>::iterator &);
     void delete_char (unsigned);
     std::list<struct file_piece>* clip (unsigned);
