@@ -9,7 +9,7 @@
 #include <assert.h>
 #include <fstream>
 #include <string>
-
+#include <stack>
 
 class TextBox : public OriEntity {
 
@@ -57,6 +57,9 @@ class TextBox : public OriEntity {
 
     /* all user input will be appended to this buffer */
     std::string write_buffer;
+
+    /* stores users previous changes that can be reverted to */
+    std::stack<struct redo> undo_stack;
 
     /* Methods */
     bool write_file ();

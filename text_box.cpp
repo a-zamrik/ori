@@ -373,7 +373,7 @@ unsigned TextBox::do_command (unsigned command, char c) {
       for (int i = 0; i < num_spaces; i++) {
         this->write_buffer += ' ';
         (*this->curr_line)->insert_char (this->cursor.col - this->text_col_offset,
-            this->write_buffer.length () - 1);
+            this->write_buffer.length () - 1, this->undo_stack);
         this->cursor.col++;
       }
       break;
@@ -381,7 +381,7 @@ unsigned TextBox::do_command (unsigned command, char c) {
     default: // command = TEXT
       this->write_buffer += c;
       (*this->curr_line)->insert_char (this->cursor.col - this->text_col_offset, 
-          this->write_buffer.length () - 1);
+          this->write_buffer.length () - 1, this->undo_stack);
       this->cursor.col++;
   }
 

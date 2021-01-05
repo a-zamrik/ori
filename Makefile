@@ -17,7 +17,7 @@ dir:
 
 ori: $(OBJECTS)
 	@echo "\n\n"
-	$(CC) $^ -o $@ $(CCFLAGS) -fsanitize=leak -fsanitize=address
+	$(CC) $^ -o $@ $(CCFLAGS) 
 
 $(OBJECTS): $(BUILD_DIR)/%.o : ./%.cpp
 	@echo $(OBJECTS)

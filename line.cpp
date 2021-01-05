@@ -91,7 +91,8 @@ unsigned Line::length () {
   return length;
 }
 
-void Line::insert_char (unsigned pos, size_t buffer_pos) {
+void Line::insert_char (unsigned pos, size_t buffer_pos, 
+                        std::stack<struct redo> redo_stack) {
 
 
   std::list<struct file_piece>::iterator pit;
