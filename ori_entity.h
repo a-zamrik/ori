@@ -29,7 +29,7 @@ class OriEntity {
     const struct cursor & get_cursor ();
 
     /* TODO: make this in oriEntity.cpp. chidren will inherent */
-    virtual unsigned do_command (unsigned, char) {}
+    virtual unsigned do_command (unsigned, char) { return ORI_NO_OP; }
     
     /*  Pure Virtual Functions:
      *    They must be implemented by the child class

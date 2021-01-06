@@ -7,6 +7,7 @@ unsigned Prompt::command_left () {
     this->curr_entry->select ();
     this->curr_entry_num--;
   }
+  return ORI_NO_OP;
 }
 
 unsigned Prompt::command_right () {
@@ -16,6 +17,7 @@ unsigned Prompt::command_right () {
     this->curr_entry->select ();
     this->curr_entry_num++;
   }
+  return ORI_NO_OP;
 }
 
 unsigned Prompt::command_enter () {

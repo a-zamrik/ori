@@ -9,6 +9,12 @@ struct file_piece {
   bool from_read_only;  // which buffer piece refers to
   size_t pos;           // pos into buffer to start reading from
   size_t length;        // length to read from buffer
+
+  file_piece () {
+    from_read_only = false;
+    pos = 0;
+    length = 0;
+  }
 };
 
 class Line {

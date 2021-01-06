@@ -47,9 +47,11 @@ void TextBox::command_undo () {
 
   struct file_piece* fp = undo.piece_location;
 
-  fp->pos = undo.old_piece.pos;
-  fp->length = undo.old_piece.length;
-
+  /* if this is NULL, then the next if must happen */
+  if (fp != NULL) {
+    fp->pos = undo.old_piece.pos;
+    fp->length = undo.old_piece.length;
+  }
 
   /* undo a new line caused by ENTER */
   if (undo.old_line != NULL) {
@@ -151,6 +153,7 @@ bool TextBox::write_file () {
     prompt_title += " lines written to " + this->file_name;
     this->aux_prompt = load_ok_prompt (prompt_title);
   }
+  return ORI_NO_OP;
 }
 
 unsigned TextBox::command_enter () {
@@ -168,6 +171,7 @@ unsigned TextBox::command_enter () {
     (*this->curr_line)->set_mark ('+');
   this->cursor.col = this->text_col_offset;
   this->cursor.row++;
+  return ORI_NO_OP;
 }
 
 unsigned TextBox::command_backspace () {
@@ -215,6 +219,8 @@ unsigned TextBox::command_backspace () {
         this->cursor.row--;
     }
   }
+  
+  return ORI_NO_OP;
 }
 
 unsigned TextBox::command_down () {
@@ -225,6 +231,7 @@ unsigned TextBox::command_down () {
   } else {
     this->curr_line--;
   }
+  return ORI_NO_OP;
 }
 
 unsigned TextBox::command_up () {
@@ -233,6 +240,7 @@ unsigned TextBox::command_up () {
     this->cursor.row--;
     this->curr_line--;
   }
+  return ORI_NO_OP;
 }
 
 

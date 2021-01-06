@@ -1,15 +1,26 @@
 
+#include <assert.h>
 #include "key_word.h"
 #include <iostream>
 #include <string.h>
 #include <list>
 #include "line.h"
 
+
+void zero_redo_struct (struct redo* r) {
+  
+  memset (r, '\0', sizeof (struct redo));
+  
+}
+
+
 /* used by undo command:
  * given an FP and a line that holds FP, the HOLDER, this
  * method will find FP and place it and all peices after FP
  * and append them to THIS Line. */
 void Line::restore_line (struct file_piece *fp, Line *holder) {
+
+  assert (fp != NULL && holder != NULL);
 
   std::list<struct file_piece*>::iterator pit;
   for (pit = holder->pieces->begin (); pit != holder->pieces->end (); pit++) {
@@ -51,7 +62,7 @@ Line::~Line () {
 
 Line::Line (bool _from_read_only, size_t _pos, size_t _length) {
 
-  struct file_piece* piece = (struct file_piece *) malloc (sizeof (struct file_piece));
+  struct file_piece* piece = new struct file_piece ();
 
   piece->from_read_only = _from_read_only;
   piece->pos = _pos;
@@ -126,6 +137,7 @@ unsigned Line::length () {
 void add_blank_redo (std::stack<struct redo> *st, struct file_piece* location) {
 
   struct redo redo;
+  zero_redo_struct (&redo);
 
   redo.old_piece.from_read_only = false;
   redo.old_piece.pos = 0;
@@ -158,7 +170,7 @@ void Line::insert_char (unsigned pos, size_t buffer_pos,
 
   /* inserting new leading piece */
   if (pos == 0) {
-    struct file_piece* new_piece = (struct file_piece *) malloc (sizeof (struct file_piece));
+    struct file_piece* new_piece = new struct file_piece ();
     new_piece->from_read_only = false;
     new_piece->pos = buffer_pos;
     new_piece->length = 1;
@@ -175,7 +187,7 @@ void Line::insert_char (unsigned pos, size_t buffer_pos,
     if (piece_mounted && (*pit)->from_read_only == false) {
       (*pit)->length++;
     } else {
-      struct file_piece* new_piece = (struct file_piece *) malloc (sizeof (struct file_piece));
+      struct file_piece* new_piece = new struct file_piece ();
       new_piece->from_read_only = false;
       new_piece->pos = buffer_pos;
       new_piece->length = 1;
@@ -197,7 +209,7 @@ void Line::insert_char (unsigned pos, size_t buffer_pos,
     size_t second_pos = (*pit)->length + (*pit)->pos;
     
     /* add new piece */
-    struct file_piece* new_piece = (struct file_piece *) malloc (sizeof (struct file_piece));
+    struct file_piece* new_piece = new struct file_piece ();
     new_piece->from_read_only = false;
     new_piece->pos = buffer_pos;
     new_piece->length = 1;
@@ -206,7 +218,7 @@ void Line::insert_char (unsigned pos, size_t buffer_pos,
     add_blank_redo (redo_stack, *pit);
 
 
-    new_piece = (struct file_piece *) malloc (sizeof (struct file_piece));
+    new_piece = new struct file_piece ();
     new_piece->from_read_only = second_origin;
     new_piece->pos = second_pos;
     new_piece->length = second_length;
@@ -262,7 +274,7 @@ void Line::delete_char (unsigned pos) {
 
   /* need to split a piece */
   else {
-    struct file_piece* new_piece = (struct file_piece *) malloc (sizeof (struct file_piece));
+    struct file_piece* new_piece = new struct file_piece ();
     new_piece->from_read_only = (*pit)->from_read_only;
     new_piece->length = (*pit)->length - pos - 1;
     new_piece->pos = (*pit)->pos + pos + 1;
@@ -297,6 +309,7 @@ std::list<struct file_piece*> * Line::clip (unsigned pos, std::stack<struct redo
   /* if backspace at start of line. clip all peices */
   if (pos == 0) {
     struct redo redo;
+    zero_redo_struct (&redo);
     redo.aux_location = *this->pieces->begin ();
     redo.old_line = this;
     st->push (redo);
@@ -312,6 +325,7 @@ std::list<struct file_piece*> * Line::clip (unsigned pos, std::stack<struct redo
     pit++;
 
     struct redo redo;
+    zero_redo_struct (&redo);
     redo.aux_location = *pit;
     redo.old_line = this;
     st->push (redo);
@@ -330,7 +344,7 @@ std::list<struct file_piece*> * Line::clip (unsigned pos, std::stack<struct redo
     (*pit)->length = pos;
     size_t second_pos = (*pit)->length + (*pit)->pos;
      
-    struct file_piece* new_piece = (struct file_piece *) malloc (sizeof (struct file_piece));
+    struct file_piece* new_piece = new struct file_piece ();
     new_piece->from_read_only = second_origin;
     new_piece->pos = second_pos;
     new_piece->length = second_length;
