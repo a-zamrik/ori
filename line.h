@@ -11,19 +11,12 @@ struct file_piece {
   size_t length;        // length to read from buffer
 };
 
-struct redo {
-  struct file_piece old_piece;  // old data
-  struct file_piece* piece_location;  // the piece that needs to be set to old_piece
-  struct file_piece* aux_location; // if aux_location is not NULL, Zero it
-  struct file_piece* second_aux_location; // if not NULL, append to aux_location
-};
-
 class Line {
   private:
     /*TODO: delete text */
     std::string text;
 
-    std::list<struct file_piece>* pieces;
+    std::list<struct file_piece*>* pieces;
     std::string mark = "[ ]";
 
     std::string frame_buffer;
@@ -36,8 +29,9 @@ class Line {
   
   public:
     Line (bool, size_t, size_t);
-    Line (std::list<struct file_piece> *);
+    Line (std::list<struct file_piece*> *, std::stack<struct redo>*);
     std::string &pieces_to_string (const std::string &, const std::string &);
+    void restore_line (struct file_piece*, Line*);
 
     ~Line ();
 
@@ -53,7 +47,7 @@ class Line {
     void insert_char (unsigned, size_t, std::stack<struct redo>*);
     void append (std::list<Line*>::iterator &);
     void delete_char (unsigned);
-    std::list<struct file_piece>* clip (unsigned);
+    std::list<struct file_piece*>* clip (unsigned, std::stack<struct redo>*);
     std::string substr (unsigned, unsigned);
     const char* get_mark ();
     void set_mark (char);
@@ -61,6 +55,15 @@ class Line {
     void draw_color (unsigned, const std::string &, const std::string &);
 
     void unmount ();
+};
+
+struct redo {
+  struct file_piece old_piece;  // old data
+  struct file_piece* piece_location;  // the piece that needs to be set to old_piece
+  struct file_piece* aux_location; // if aux_location is not NULL, Zero it
+  struct file_piece* second_aux_location; // if not NULL, append to aux_location
+  struct Line* old_line; // line that was split by ENTER
+  struct Line* new_line; // line that utilized the split
 };
 
 void lexer_reset ();

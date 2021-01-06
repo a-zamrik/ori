@@ -50,9 +50,24 @@ void TextBox::command_undo () {
   fp->pos = undo.old_piece.pos;
   fp->length = undo.old_piece.length;
 
+
+  /* undo a new line caused by ENTER */
+  if (undo.old_line != NULL) {
+    undo.old_line->restore_line (undo.aux_location, undo.new_line);
+
+    /* cursor can't be on a line that wont exist */
+    if (*this->curr_line == undo.new_line) {
+      this->command_up ();
+    }
+
+    /* new_line is now empty and contains no pieces; it's save to delete */
+    delete undo.new_line;
+    this->lines.remove (undo.new_line);
+  }
+
   /* the piece we undid split another piece: need to combine the split
    * piece back into one */
-  if (undo.second_aux_location) {
+  else if (undo.second_aux_location) {
     struct file_piece* right_fp = undo.second_aux_location;
     struct file_piece* left_fp = undo.aux_location;
 
@@ -143,7 +158,9 @@ unsigned TextBox::command_enter () {
 
   (*this->curr_line)->unmount ();
   this->insert_line (++this->curr_line, 
-     new Line ((*this->curr_line)->clip (this->cursor.col - this->text_col_offset)));
+     new Line ((*this->curr_line)->clip (this->cursor.col - this->text_col_offset, 
+         &this->undo_stack), &this->undo_stack));
+  
   this->curr_line--;
 
 
