@@ -239,11 +239,6 @@ void Line::insert_char (unsigned pos, size_t buffer_pos,
 
 void Line::append (std::list<Line*>::iterator &line) {
 
-
-  struct redo redo;
-  zero_struct_redo (&redo);
-
-
   /* iterate through GIVER's elements with LINE while appending to THIS and
    * removing from GIVER */
   std::list<struct file_piece*>::iterator pit;

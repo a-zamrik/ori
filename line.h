@@ -63,6 +63,9 @@ class Line {
     void unmount ();
 };
 
+/* Should look at TextBox::command_undo for a better understanding
+ *
+ * I wont lie. The undo functinallit is convoluted, but it works. */
 struct redo {
   struct file_piece old_piece;  // old data
   struct file_piece* piece_location;  // the piece that needs to be set to old_piece

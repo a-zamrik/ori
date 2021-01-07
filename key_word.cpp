@@ -84,6 +84,9 @@ void init_key_word_map () {
   /* TODO: should be able to detect spaces between "#" and "include" and
    * still color correctly */
   key_word_map["#include"] = value;
+  key_word_map["#define"] = value;
+  key_word_map["#ifndef"] = value;
+  key_word_map["#endif"] = value;
 }
 
 KeyWord * is_keyword (const std::string & possible_keyword) {
