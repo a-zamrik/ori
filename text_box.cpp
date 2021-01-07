@@ -11,8 +11,89 @@
 
 
 
+void TextBox::clean_up () {
+
+  for (auto &l : this->lines)
+    delete l;
+
+  this->lines.clear ();
+  this->cursor.row = this->text_row_offset;
+  this->cursor.col = this->text_col_offset;
+  this->scroll_offset = 0;
+
+  this->read_only_buffer.clear ();
+  this->write_buffer.clear ();
+
+}
+
+TextBox::~TextBox () {
+    this->clean_up ();
+
+    if (this->aux_prompt) {
+      delete this->aux_prompt;
+    }
+
+}
+
+/* Undo the last command done by the user */
+void TextBox::command_undo () {
+
+  if (this->undo_stack.size () == 0)
+    return;
 
 
+  struct redo undo = this->undo_stack.top ();
+  this->undo_stack.pop ();
+
+  struct file_piece* fp = undo.piece_location;
+
+  /* if this is NULL, then the next if must happen */
+  if (fp != NULL) {
+    fp->pos = undo.old_piece.pos;
+    fp->length = undo.old_piece.length;
+  }
+
+  /* undo a new line caused by ENTER */
+  if (undo.old_line != NULL) {
+    /* ENTER split a piece and needs to stiched back together */
+    if (undo.second_aux_location) {
+      undo.old_line->restore_line (undo.second_aux_location, undo.new_line);
+   
+      struct file_piece* right_fp = undo.second_aux_location;
+      struct file_piece* left_fp = undo.aux_location;
+      assert (left_fp != NULL);
+      left_fp->length += right_fp->length;
+      right_fp->length = 0;
+    } 
+    /* Enter did not split a piece */
+    else {
+      undo.old_line->restore_line (undo.aux_location, undo.new_line);
+    }
+
+
+    /* cursor can't be on a line that wont exist */
+    if (*this->curr_line == undo.new_line) {
+      this->command_up ();
+    }
+
+    /* new_line is now empty and contains no pieces; it's save to delete */
+    delete undo.new_line;
+    this->lines.remove (undo.new_line);
+  }
+
+  /* the piece we undid split another piece: need to combine the split
+   * piece back into one */
+  else if (undo.second_aux_location) {
+    struct file_piece* right_fp = undo.second_aux_location;
+    struct file_piece* left_fp = undo.aux_location;
+
+    assert (left_fp != NULL);
+
+    left_fp->length += right_fp->length;
+    right_fp->length = 0;
+
+  }
+}
 
 bool TextBox::load_file (std::string const&file_name) {
   
@@ -21,7 +102,7 @@ bool TextBox::load_file (std::string const&file_name) {
   if (this->aux_prompt == NULL) {
     bool unsaved_changes = false;
     for (auto& line : this->lines) {
-        if (line.get_mark ()[1] == '+') {
+        if (line->get_mark ()[1] == '+') {
           unsaved_changes = true;
           break;
         }
@@ -41,12 +122,12 @@ bool TextBox::load_file (std::string const&file_name) {
   std::ifstream working_file (file_name);
 
   if (working_file.is_open ()) {
-    this->lines.clear ();
-    this->cursor.row = this->text_row_offset;
-    this->cursor.col = this->text_col_offset;
-    this->scroll_offset = 0;
+    this->clean_up ();
+    size_t pos = 0;
     while (getline (working_file, line)) {
-      this->add_line (line);
+      this->read_only_buffer += line;
+      this->lines.push_back ( new Line (true, pos, line.length ()));
+      pos += line.length ();
     }
     this->curr_line = this->lines.begin ();
     working_file.close ();
@@ -60,19 +141,20 @@ bool TextBox::load_file (std::string const&file_name) {
 }
 
 bool TextBox::write_file () {
-  std::list<Line>::iterator it = lines.begin ();
+  std::list<Line*>::iterator it = lines.begin ();
   std::ofstream working_file (file_name);
 
   assert (working_file.is_open ());
 
   /* TODO: add error handling */
   for (it = lines.begin (); it != lines.end (); it++) {
-    working_file << it->get_str_obj () << std::endl;
+    working_file << (*it)->get_str_obj (this->read_only_buffer,
+        this->write_buffer) << std::endl;
   }
 
   working_file.close ();
   for (auto& line : this->lines) {
-    line.set_mark (' ');
+    line->set_mark (' ');
   }
 
   this->original_lines_size = this->lines.size ();
@@ -85,24 +167,25 @@ bool TextBox::write_file () {
     prompt_title += " lines written to " + this->file_name;
     this->aux_prompt = load_ok_prompt (prompt_title);
   }
+  return ORI_NO_OP;
 }
 
 unsigned TextBox::command_enter () {
   /* TODO: make new line and move over contents if needed */
 
+  (*this->curr_line)->unmount ();
   this->insert_line (++this->curr_line, 
-      Line (this->curr_line->substr (this->cursor.col - this->text_col_offset, this->curr_line->length ())));
+     new Line ((*this->curr_line)->clip (this->cursor.col - this->text_col_offset, 
+         &this->undo_stack), &this->undo_stack));
+  
   this->curr_line--;
 
-  /* Clip off/delete string from previous line to "move" it */
-  this->curr_line--;
-  this->curr_line->clip (this->cursor.col - this->text_col_offset);
-  this->curr_line++;
 
-  if (this->cursor.col != this->text_col_offset || !this->curr_line->length ())
-    this->curr_line->set_mark ('+');
+  if (this->cursor.col != this->text_col_offset || !(*this->curr_line)->length ())
+    (*this->curr_line)->set_mark ('+');
   this->cursor.col = this->text_col_offset;
   this->cursor.row++;
+  return ORI_NO_OP;
 }
 
 unsigned TextBox::command_backspace () {
@@ -115,11 +198,11 @@ unsigned TextBox::command_backspace () {
 
 
 
-    std::list<Line>::iterator to_be_removed = this->curr_line;
+    std::list<Line*>::iterator to_be_removed = this->curr_line;
     this->curr_line--;
 
     /* update cursor */
-    this->cursor.col = this->text_col_offset + this->curr_line->length ();
+    this->cursor.col = this->text_col_offset + (*this->curr_line)->length ();
 
     /* move cursor up if deleting at start of text; scroll if needed */
     if (this->cursor.row == this->text_row_offset) {
@@ -129,8 +212,8 @@ unsigned TextBox::command_backspace () {
     }
 
     /* modify lines */
-    if (to_be_removed->length()) {
-      this->curr_line->append (to_be_removed);
+    if ((*to_be_removed)->length()) {
+      (*this->curr_line)->append (to_be_removed);
     }
     this->remove_line (to_be_removed);
     return 0;
@@ -138,45 +221,43 @@ unsigned TextBox::command_backspace () {
 
 
   /* deleteing just char or entire line */
-  if (this->curr_line->length () > 0) {
+  if ((*this->curr_line)->length () > 0) {
     this->cursor.col--;
-    this->curr_line->delete_char (this->cursor.col - this->text_col_offset);
+    (*this->curr_line)->delete_char (this->cursor.col - this->text_col_offset,
+                                     &this->undo_stack);
   } else {
     /* must have atleast one line on display */
     if (this->lines.size () > 1) {
+      /* TODO: memory leak: SHOULD NOT REMOVE LINE */
       this->remove_line (this->curr_line++);
       if (this->cursor.row > this->text_row_offset)
         this->cursor.row--;
     }
   }
+  
+  return ORI_NO_OP;
 }
 
 unsigned TextBox::command_down () {
   /* TODO: should be able to scroll down to a full page of empty lines */
   if (++this->curr_line != this->end ()) {
+    (*this->curr_line)->unmount ();
     this->cursor.row++;
   } else {
     this->curr_line--;
   }
+  return ORI_NO_OP;
 }
 
 unsigned TextBox::command_up () {
   if (this->curr_line != this->begin ()) {
+    (*this->curr_line)->unmount ();
     this->cursor.row--;
     this->curr_line--;
   }
+  return ORI_NO_OP;
 }
 
-void TextBox::clear_marked_lines () {
-  if (marked_lines.size () > 0) {
-    std::list<Line*>::iterator it;
-    for (it = marked_lines.begin (); it != marked_lines.end ();) {
-      (*it)->set_mark (' ');
-      marked_lines.erase (it++);
-    }
-  }
-
-}
 
 /* _COL_OFFSET and _ROW_OFFSET is the top left start of where the text
  * will be located.
@@ -205,8 +286,7 @@ TextBox::TextBox (unsigned _col_offset, unsigned _row_offset, unsigned _width, u
 }
 
 TextBox::TextBox (unsigned _col_offset, unsigned _row_offset, unsigned _width,
-    unsigned _length, const std::string &file_name) {
-  *this = TextBox (_col_offset, _row_offset, _width, _length);
+    unsigned _length, const std::string &file_name) : TextBox::TextBox (_col_offset, _row_offset, _width, _length) {
   this->load_file (file_name);
   this->curr_line = this->lines.begin ();
 }
@@ -220,23 +300,20 @@ struct cursor & TextBox::unmount_cursor () {
   return this->cursor;
 }
 
-void TextBox::add_line (std::string str) {
-  lines.push_back (Line (str));
-}
-
-void TextBox::remove_line (std::list<Line>::iterator it) {
+void TextBox::remove_line (std::list<Line*>::iterator it) {
+  delete *it;
   lines.erase (it);
 }
 
-std::list<Line>::iterator TextBox::begin () {
+std::list<Line*>::iterator TextBox::begin () {
   return lines.begin ();
 }
 
-std::list<Line>::iterator TextBox::end () {
+std::list<Line*>::iterator TextBox::end () {
   return lines.end ();
 }
 
-void TextBox::insert_line (std::list<Line>::iterator it, Line line) {
+void TextBox::insert_line (std::list<Line*>::iterator it, Line* line) {
   lines.insert (it, line);
 }
 
@@ -262,6 +339,7 @@ void TextBox::command_scroll_down () {
   if (this->curr_line != --this->lines.end ()) {
     this->scroll_offset++;
     if (cursor.row == this->text_row_offset) {
+      (*this->curr_line)->unmount ();
       this->curr_line++;
     } else {
       cursor.row--;
@@ -273,6 +351,7 @@ void TextBox::command_scroll_up () {
   if (this->curr_line != this->lines.begin () && this->scroll_offset) {
     this->scroll_offset--;
     if (cursor.row == this->text_row_offset + this->length) {
+      (*this->curr_line)->unmount ();
       this->curr_line--;
     } else {
       cursor.row++;
@@ -312,11 +391,13 @@ unsigned TextBox::do_command (unsigned command, char c) {
       break;
     case LEFT:
       if (cursor.col > this->text_col_offset)
+        (*this->curr_line)->unmount ();
         this->cursor.col--;
       break;
 
     case RIGHT:
-      if (this->cursor.col < this->curr_line->length() + this->text_col_offset)
+      if (this->cursor.col < (*this->curr_line)->length() + this->text_col_offset)
+        (*this->curr_line)->unmount ();
         this->cursor.col++;
       break;
 
@@ -360,21 +441,27 @@ unsigned TextBox::do_command (unsigned command, char c) {
       int num_spaces  = 2 - ((this->text_col_offset - this->cursor.col) % 2);
 
       for (int i = 0; i < num_spaces; i++) {
-        this->curr_line->insert_char (' ', this->cursor.col - this->text_col_offset);
+        this->write_buffer += ' ';
+        (*this->curr_line)->insert_char (this->cursor.col - this->text_col_offset,
+            this->write_buffer.length () - 1, &this->undo_stack);
         this->cursor.col++;
       }
       break;
       }
+    case CTRL_U:
+      this->command_undo ();
+      break;
     default: // command = TEXT
-      this->marked_lines.push_back (&(*this->curr_line));
-      this->curr_line->insert_char (c, this->cursor.col - this->text_col_offset);
+      this->write_buffer += c;
+      (*this->curr_line)->insert_char (this->cursor.col - this->text_col_offset, 
+          this->write_buffer.length () - 1, &this->undo_stack);
       this->cursor.col++;
   }
 
   /* push back cursor to end of line when moving up or down into
    * no mans land */
-  if (this->cursor.col - this->text_col_offset > this->curr_line->length()) {
-    this->cursor.col = this->text_col_offset + this->curr_line->length();
+  if (this->cursor.col - this->text_col_offset > (*this->curr_line)->length()) {
+    this->cursor.col = this->text_col_offset + (*this->curr_line)->length();
   }
 
   /* if cursor needs to scroll text box down */
@@ -400,8 +487,8 @@ void TextBox::render () {
   }
 
   /* Move to lines that are in view port */
-  std::list<Line>::iterator line = this->begin ();
-  std::list<Line>::iterator ref_line;
+  std::list<Line*>::iterator line = this->begin ();
+  std::list<Line*>::iterator ref_line;
   int j;
   for (j = 0; j < this->scroll_offset; j++)
     line++;
@@ -432,9 +519,11 @@ void TextBox::render () {
   for (int i = j; i <= this->scroll_offset + this->length && line != this->end (); i++) {
     printf ("\033[%u;%uH", curr_row, this->text_col_offset);
     if (this->color_enabled)
-      line->draw_color (this->width  - (this->text_col_offset - this->col_anchor));
+      (*line)->draw_color (this->width  - (this->text_col_offset - this->col_anchor),
+          this->read_only_buffer, this->write_buffer);
     else
-      line->draw (this->width  - (this->text_col_offset - this->col_anchor));
+      (*line)->draw (this->width  - (this->text_col_offset - this->col_anchor),
+          this->read_only_buffer, this->write_buffer);
     line++;
     curr_row++;
   }

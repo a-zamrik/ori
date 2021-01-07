@@ -23,12 +23,13 @@ class OriEntity {
     virtual unsigned command_backspace () {return ORI_NO_OP;}
 
   public:
+    virtual ~OriEntity () = default;
     void set_text_color (unsigned char, unsigned char, unsigned char) ;
     void set_background_color (unsigned char, unsigned char, unsigned char);
     const struct cursor & get_cursor ();
 
     /* TODO: make this in oriEntity.cpp. chidren will inherent */
-    virtual unsigned do_command (unsigned, char) {}
+    virtual unsigned do_command (unsigned, char) { return ORI_NO_OP; }
     
     /*  Pure Virtual Functions:
      *    They must be implemented by the child class

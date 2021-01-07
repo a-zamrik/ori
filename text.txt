@@ -1,8 +1,11 @@
-#include <iostream>
+How are you doing today!
+I am doing great today. I hope all is well with you. I created this text editor and it has lead to some
+interesting problems. Its almost complete. I just want to implement undo and redo functionality.
+Afterwards, I would like to then make a lexer to have better text hightlighting.
 
-int main () {
-  
-  std::cout << "hello_world" << std::endl;
+fun
 
-  return 0;
-} 
+
+
+
+Things are working!!!!
