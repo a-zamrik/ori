@@ -239,6 +239,11 @@ void Line::insert_char (unsigned pos, size_t buffer_pos,
 
 void Line::append (std::list<Line*>::iterator &line) {
 
+
+  struct redo redo;
+  zero_struct_redo (&redo);
+
+
   /* iterate through GIVER's elements with LINE while appending to THIS and
    * removing from GIVER */
   std::list<struct file_piece*>::iterator pit;
@@ -250,7 +255,7 @@ void Line::append (std::list<Line*>::iterator &line) {
   this->frame_cached = false;
 }
 
-void Line::delete_char (unsigned pos) {
+void Line::delete_char (unsigned pos, std::stack<struct redo>* st) {
   
   std::list<struct file_piece*>::iterator pit;
   for (pit = this->pieces->begin (); pit != pieces->end (); pit++) {
@@ -266,10 +271,30 @@ void Line::delete_char (unsigned pos) {
 
   /* deleting at end of line */
   else if (pos == (*pit)->length - 1) {
+    /* TODO: finish this */
+    if (st->empty () || st->top ().piece_location != *pit) {
+      struct redo redo;
+      zero_redo_struct (&redo);
+      redo.piece_location = *pit;
+      redo.old_piece.from_read_only = (*pit)->from_read_only;
+      redo.old_piece.pos = (*pit)->pos;
+      redo.old_piece.length = (*pit)->length;
+      st->push (redo);
+    }
+
     (*pit)->length--;
   }
 
   else if (pos == 0) {
+    if (st->empty () || st->top ().piece_location != *pit) {
+      struct redo redo;
+      zero_redo_struct (&redo);
+      redo.piece_location = *pit;
+      redo.old_piece.from_read_only = (*pit)->from_read_only;
+      redo.old_piece.pos = (*pit)->pos;
+      redo.old_piece.length = (*pit)->length;
+      st->push (redo);
+    }
     (*pit)->pos++;
     (*pit)->length--;
 
@@ -281,7 +306,17 @@ void Line::delete_char (unsigned pos) {
     new_piece->from_read_only = (*pit)->from_read_only;
     new_piece->length = (*pit)->length - pos - 1;
     new_piece->pos = (*pit)->pos + pos + 1;
-
+   
+    /* create the redo and update current piece (*pit) */
+    struct redo redo;
+    zero_redo_struct (&redo);
+    redo.piece_location = *pit;
+    redo.aux_location = *pit;
+    redo.second_aux_location = new_piece;
+    redo.old_piece.from_read_only = (*pit)->from_read_only;
+    redo.old_piece.pos = (*pit)->pos;
+    redo.old_piece.length = pos + 1;
+    st->push (redo);
     (*pit)->length = pos;
 
     this->pieces->insert (++pit, new_piece);
@@ -357,7 +392,11 @@ std::list<struct file_piece*> * Line::clip (unsigned pos, std::stack<struct redo
     result->push_back (new_piece);
 
     /* push redo info onto redo stack */
-    redo.aux_location = new_piece;
+    /* NOTE: this is configured so that TextBox::command_undo knows to 
+     * stich two file pieces back together. Previous if statements
+     * don't do this */
+    redo.aux_location = *pit;
+    redo.second_aux_location = new_piece;
     redo.old_line = this;
     st->push (redo);
 

@@ -55,7 +55,21 @@ void TextBox::command_undo () {
 
   /* undo a new line caused by ENTER */
   if (undo.old_line != NULL) {
-    undo.old_line->restore_line (undo.aux_location, undo.new_line);
+    /* ENTER split a piece and needs to stiched back together */
+    if (undo.second_aux_location) {
+      undo.old_line->restore_line (undo.second_aux_location, undo.new_line);
+   
+      struct file_piece* right_fp = undo.second_aux_location;
+      struct file_piece* left_fp = undo.aux_location;
+      assert (left_fp != NULL);
+      left_fp->length += right_fp->length;
+      right_fp->length = 0;
+    } 
+    /* Enter did not split a piece */
+    else {
+      undo.old_line->restore_line (undo.aux_location, undo.new_line);
+    }
+
 
     /* cursor can't be on a line that wont exist */
     if (*this->curr_line == undo.new_line) {
@@ -209,7 +223,8 @@ unsigned TextBox::command_backspace () {
   /* deleteing just char or entire line */
   if ((*this->curr_line)->length () > 0) {
     this->cursor.col--;
-    (*this->curr_line)->delete_char (this->cursor.col - this->text_col_offset);
+    (*this->curr_line)->delete_char (this->cursor.col - this->text_col_offset,
+                                     &this->undo_stack);
   } else {
     /* must have atleast one line on display */
     if (this->lines.size () > 1) {

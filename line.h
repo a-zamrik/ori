@@ -52,7 +52,7 @@ class Line {
     unsigned length ();
     void insert_char (unsigned, size_t, std::stack<struct redo>*);
     void append (std::list<Line*>::iterator &);
-    void delete_char (unsigned);
+    void delete_char (unsigned, std::stack<struct redo>*);
     std::list<struct file_piece*>* clip (unsigned, std::stack<struct redo>*);
     std::string substr (unsigned, unsigned);
     const char* get_mark ();
