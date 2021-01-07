@@ -20,7 +20,8 @@ void zero_redo_struct (struct redo* r) {
  * and append them to THIS Line. */
 void Line::restore_line (struct file_piece *fp, Line *holder) {
 
-  assert (fp != NULL && holder != NULL);
+  /* fp can be NULL, it is never dereferenced */
+  assert (holder != NULL);
 
   std::list<struct file_piece*>::iterator pit;
   for (pit = holder->pieces->begin (); pit != holder->pieces->end (); pit++) {
@@ -48,11 +49,10 @@ void Line::set_mark (char c) {
 
 Line::~Line () {
   
-  /* TODO: free pieces */
-  /* std::list<struct file_piece*>::iterator pit;
+  std::list<struct file_piece*>::iterator pit;
   for (pit = this->pieces->begin (); pit != pieces->end (); pit++) {
-    free (*pit);  
-  } */
+    delete *pit;  
+  }
 
   if (pieces) {
     delete pieces;
@@ -239,10 +239,13 @@ void Line::insert_char (unsigned pos, size_t buffer_pos,
 
 void Line::append (std::list<Line*>::iterator &line) {
 
-  
+  /* iterate through GIVER's elements with LINE while appending to THIS and
+   * removing from GIVER */
   std::list<struct file_piece*>::iterator pit;
-  for (pit = (*line)->pieces->begin (); pit != (*line)->pieces->end (); pit++)
+  for (pit = (*line)->pieces->begin (); pit != (*line)->pieces->end ();) {
     this->pieces->push_back (*pit);
+    pit = (*line)->pieces->erase (pit);
+  }
     
   this->frame_cached = false;
 }
@@ -338,17 +341,32 @@ std::list<struct file_piece*> * Line::clip (unsigned pos, std::stack<struct redo
 
   /* need to split a piece */
   else {
+    struct redo redo;
+    zero_redo_struct (&redo);
+
+    /* split the file_piece and place right half into result */
     bool second_origin = (*pit)->from_read_only;
     size_t second_length = (*pit)->length - pos;
     // clip prev piece
     (*pit)->length = pos;
-    size_t second_pos = (*pit)->length + (*pit)->pos;
-     
+    size_t second_pos = (*pit)->length + (*pit)->pos; 
     struct file_piece* new_piece = new struct file_piece ();
     new_piece->from_read_only = second_origin;
     new_piece->pos = second_pos;
     new_piece->length = second_length;
     result->push_back (new_piece);
+
+    /* push redo info onto redo stack */
+    redo.aux_location = new_piece;
+    redo.old_line = this;
+    st->push (redo);
+
+    /* push remaining peices after split piece onto result */
+    pit++;
+    while (pit != this->pieces->end ()) {
+      result->push_back (*pit);
+      this->pieces->erase (pit++);
+    }
   }
 
   this->frame_cached = false;
