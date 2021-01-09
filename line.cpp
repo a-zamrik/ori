@@ -1,4 +1,4 @@
-
+#include "lexer.h"
 #include <assert.h>
 #include "key_word.h"
 #include <iostream>
@@ -440,9 +440,17 @@ std::string & Line::pieces_to_string (const std::string &read_buffer,
 }
 
 void Line::draw_color (unsigned width, const std::string &r_buf,
-                       const std::string &w_buf) {
+                       const std::string &w_buf, Lexer & lex) {
 
   this->pieces_to_string (r_buf, w_buf);
+
+  lex.color_line (this->frame_buffer, this->text, 0);
+  printf("%s%*s",
+        this->frame_buffer.c_str (),
+        width  - (unsigned) this->text.length (),
+        this->mark.c_str ());
+  return;
+
 
   /* TODO: make a proper lexer */
   /* if in comment does not work if this statement is used */

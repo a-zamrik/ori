@@ -4,6 +4,7 @@
 #include <list>
 #include <string>
 #include <stack>
+#include "lexer.h"
 
 struct file_piece {
   bool from_read_only;  // which buffer piece refers to
@@ -58,7 +59,7 @@ class Line {
     const char* get_mark ();
     void set_mark (char);
     void draw (unsigned, const std::string &, const std::string &);
-    void draw_color (unsigned, const std::string &, const std::string &);
+    void draw_color (unsigned, const std::string &, const std::string &, Lexer &);
 
     void unmount ();
 };

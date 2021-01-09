@@ -515,15 +515,17 @@ void TextBox::render () {
   }
 
   lexer_reset ();
+  std::string color_buffer;
   /* print lines with text within bounds */
   for (int i = j; i <= this->scroll_offset + this->length && line != this->end (); i++) {
     printf ("\033[%u;%uH", curr_row, this->text_col_offset);
-    if (this->color_enabled)
+    if (this->color_enabled) {
       (*line)->draw_color (this->width  - (this->text_col_offset - this->col_anchor),
-          this->read_only_buffer, this->write_buffer);
-    else
+          this->read_only_buffer, this->write_buffer, this->lexer);
+    } else {
       (*line)->draw (this->width  - (this->text_col_offset - this->col_anchor),
           this->read_only_buffer, this->write_buffer);
+    }
     line++;
     curr_row++;
   }

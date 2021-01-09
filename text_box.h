@@ -10,6 +10,7 @@
 #include <fstream>
 #include <string>
 #include <stack>
+#include "lexer.h"
 
 class TextBox : public OriEntity {
 
@@ -60,6 +61,9 @@ class TextBox : public OriEntity {
 
     /* stores users previous changes that can be reverted to */
     std::stack<struct redo> undo_stack;
+
+    /* used to interperet syntax */
+    Lexer lexer;
 
     /* Methods */
     bool write_file ();
