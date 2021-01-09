@@ -2,7 +2,21 @@
 #define ORI_LEXER_H
 
 #include <regex>
+#include <map>
 #include <vector>
+
+struct exp_piece {
+  unsigned length;
+  unsigned color_index;
+  bool cap_color;
+
+  exp_piece () {
+    length = 0;
+    color_index = 0;
+    cap_color = 0;
+  }
+
+}
 
 class KeyExpression {
 
@@ -10,6 +24,7 @@ class KeyExpression {
     std::regex reg;         // describes the pattern of thie KeyExpression
     unsigned append_cutoff; // how far to not append from end
     unsigned color_index;   // index into a ANSI color list
+    bool cap_color_at_end;  // place default color after keyword or end of line
 
   public:
     KeyExpression (const std::string &, unsigned, unsigned);
@@ -19,6 +34,8 @@ class KeyExpression {
     std::regex & get_regex ();
     unsigned get_append_cutoff ();
     unsigned get_color_index ();
+    bool get_cap_color_at_end ();
+    void set_cap_color_at_end (bool);
 
 };
 
@@ -42,9 +59,17 @@ class Lexer {
   KeyExpression str_aftr_inc_exp;
   /* searches for data types */
   KeyExpression data_type_exp;
+  /* searches for key words */
+  KeyExpression key_word_exp;
+  /* searches for aux key words */
+  KeyExpression key_aux_exp;
+  /* searches for inline comments */
+  KeyExpression inline_comment_exp;
 
   /* Stores list of ANSI color strings */
   std::vector<std::string> color_list;
+
+  std::map<unsigned, struct exp_piece> expressions;
 
   /* Could use std::string::find_fisrt_of () to tokenize the string. Just
    * search for spaces (' '), and we have a token. We then can check the
@@ -60,6 +85,7 @@ class Lexer {
     ~Lexer () = default;
     size_t add_color (unsigned char, unsigned char, unsigned char);
     bool try_regex_match (KeyExpression &, std::string &, const std::string &, unsigned &);
+    bool try_regex_match_multiple (KeyExpression &, std::string &, const std::string &, unsigned &);
 };
 #endif
 

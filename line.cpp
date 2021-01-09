@@ -444,27 +444,22 @@ void Line::draw_color (unsigned width, const std::string &r_buf,
 
   this->pieces_to_string (r_buf, w_buf);
 
-  lex.color_line (this->frame_buffer, this->text, 0);
-  printf("%s%*s",
-        this->frame_buffer.c_str (),
-        width  - (unsigned) this->text.length (),
-        this->mark.c_str ());
-  return;
+  size_t start = lex.color_line (this->frame_buffer, this->text, 0);
 
 
   /* TODO: make a proper lexer */
   /* if in comment does not work if this statement is used */
   // if (!this->frame_cached) {
   if (1) {
-    this->frame_buffer.clear ();
+    // this->frame_buffer.clear ();
     /* TODO: Need to create a lexer
      * comments should not depend on delimantor for highlihgt */
-    std::size_t prev = 0;
-    std::size_t curr = 0;
-    bool in_delim = is_deliminator (this->text[0]);
+    std::size_t prev = start;
+    std::size_t curr = start;
+    bool in_delim = is_deliminator (this->text[start]);
     std::string word;
     KeyWord * key_word = NULL;
-    for (int i = 0; i < this->text.length () + 1; i++) {
+    for (int i = start; i < this->text.length () + 1; i++) {
       bool is_delim = is_deliminator (this->text[i]);
 
       /* exiting delimenator portion and entered start of word */
