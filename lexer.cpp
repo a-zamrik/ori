@@ -12,24 +12,17 @@ Lexer::try_regex_match ( KeyExpression & k_exp,
   bool result = false;
   std::smatch m;
   if (std::regex_search (text, m, k_exp.get_regex ())) {
-
-    // append any text inbetween the include and included file
-    frame_buffer.append (text, curr_pos, m.position (0) - curr_pos);
-    // add color to text
-    frame_buffer += this->color_list[k_exp.get_color_index ()];
-    /* -1: dont include " | < */
-    frame_buffer.append (text, m.position(0), m.length (0) - k_exp.get_append_cutoff ());
-    
-    if (k_exp.get_cap_color_at_end ()) {
-      curr_pos = m.position (0) + m.length (0) - k_exp.get_append_cutoff ();
-      frame_buffer.append (text, curr_pos, text.length ());
-      frame_buffer += "\033[38;2;255;255;255m";
-      curr_pos = text.length ();
+    struct exp_piece ep;
+    if (k_exp.get_cap_color ()) {
+      ep.length = m.length (0) - k_exp.get_append_cutoff ();
     } else {
-      frame_buffer += "\033[38;2;255;255;255m";
-      curr_pos = m.position (0) + m.length (0) - k_exp.get_append_cutoff ();
+      ep.length = text.length () - m.position (0);
     }
-    result = true;;
+    ep.color_index = k_exp.get_color_index ();
+
+    expressions.insert (std::pair <unsigned, struct exp_piece> (m.position(0), ep));
+    result = true;
+
   }
 
   return result;
@@ -48,16 +41,14 @@ Lexer::try_regex_match_multiple ( KeyExpression & k_exp,
        it++) {
 
     m = *it;
-    // append any text inbetween the include and included file
-    frame_buffer.append (text, curr_pos, m.position (0) - curr_pos);
-    // add color to text
-    frame_buffer += this->color_list[k_exp.get_color_index ()];
-    /* -1: dont include " | < */
-    frame_buffer.append (text, m.position(0), m.length (0) - k_exp.get_append_cutoff ());
-    frame_buffer += "\033[38;2;255;255;255m";
+    struct exp_piece ep;
+    ep.length = m.length (0);
+    ep.color_index = k_exp.get_color_index ();
 
-    curr_pos = m.position (0) + m.length (0) - k_exp.get_append_cutoff ();
-    result = true;;
+    expressions.insert (std::pair <unsigned, struct exp_piece> (m.position(0), ep));
+
+
+    result = true;
   }
 
   return result;
@@ -81,9 +72,12 @@ Lexer::Lexer () {
   size_t color_index = this->add_color (227, 231, 175);
   this->inc_exp = KeyExpression ("#[ \t]*include[ \t]*(<|\")", 1, color_index);
 
-  color_index = this->add_color (0, 227, 175);
+  color_index = this->add_color (177, 255, 200);
   this->str_aftr_inc_exp = KeyExpression ("(\".*\")|(<.*>)", 0, color_index);
 
+  /* TODO: need way to know string continues over to next line */
+  this->str_exp = KeyExpression ("\".*(\"|\\\\)", 0, color_index);
+  
   color_index = this->add_color (171, 146, 191);
   this->data_type_exp = KeyExpression ("\\b(bool|signed|unsigned|short\
     |int|long|char|float|double|size_t|wchar_t|void|NULL)\\b", 0, color_index);
@@ -95,9 +89,16 @@ Lexer::Lexer () {
   this->key_aux_exp = KeyExpression ("\\b(struct|const|this|return|static|class|\
                       private|public|protected|auto)\\b", 0, color_index);
 
+
   color_index = this->add_color (227, 231, 175);
   this->inline_comment_exp = KeyExpression ("//", 0, color_index);
-  this->inline_comment_exp.set_cap_color_at_end (true);
+  this->inline_comment_exp.set_cap_color (false);  // rest of line is not color capped
+
+  color_index = this->add_color (200, 50, 200);
+  this->digit_exp = KeyExpression ("[0-9]*", 0, color_index);
+
+  color_index = this->add_color (157, 110, 244);
+  this->char_exp = KeyExpression ("'[a-zA-Z0-9]+'", 0, color_index);
 }
 
 KeyExpression::KeyExpression (const std::string & regexp,
@@ -107,7 +108,7 @@ KeyExpression::KeyExpression (const std::string & regexp,
   this->reg = std::regex (regexp);
   this->append_cutoff = _append_cutoff;
   this->color_index = _color_index;
-  this->cap_color_at_end = false;
+  this->cap_color = true;
 
 }
 
@@ -115,6 +116,7 @@ unsigned Lexer::color_line (std::string & frame_buffer, const std::string &text,
     unsigned line_num) {
 
   frame_buffer.clear ();
+  expressions.clear ();
   unsigned curr_pos = 0;
 
   /* search and color include preprocessor key word */
@@ -122,24 +124,59 @@ unsigned Lexer::color_line (std::string & frame_buffer, const std::string &text,
     try_regex_match (this->str_aftr_inc_exp, frame_buffer, text, curr_pos);
   }
 
-  // 
+  /* search and color inline comments */ 
   try_regex_match (this->inline_comment_exp, frame_buffer, text, curr_pos);
 
+  /* search and color strings */
+  try_regex_match_multiple (this->str_exp, frame_buffer, text, curr_pos);
+
   /* search and color key words */
-  // try_regex_match_multiple (this->key_word_exp, frame_buffer, text, curr_pos);
+   try_regex_match_multiple (this->key_word_exp, frame_buffer, text, curr_pos);
   
   /* search and color data type */
-  // try_regex_match_multiple (this->data_type_exp, frame_buffer, text, curr_pos);
+   try_regex_match_multiple (this->data_type_exp, frame_buffer, text, curr_pos);
 
   /* search and color aux key words */
-  // try_regex_match_multiple (this->key_aux_exp, frame_buffer, text, curr_pos);
+   try_regex_match_multiple (this->key_aux_exp, frame_buffer, text, curr_pos);
 
+   /* search and color digits */
+   try_regex_match_multiple (this->digit_exp, frame_buffer, text, curr_pos);
 
+   /* search and color char strings */
+   try_regex_match_multiple (this->char_exp, frame_buffer, text, curr_pos);
+
+  stitch_frame_buffer (frame_buffer, text);
   
   // append rest of text
   // frame_buffer.append (text, curr_pos, text.length ());
   
   return curr_pos;
+}
+
+void Lexer::stitch_frame_buffer (std::string & frame_buffer, const std::string & text) {
+
+  unsigned prev = 0;
+  unsigned prev_length = 0;
+  std::map<unsigned, struct exp_piece>::iterator it;
+
+  for (it = expressions.begin (); it != expressions.end (); it++) {
+    /* if the previous piece already took care of IT's portion, dont
+     * do IT's portion. Strings and Comments trump all other
+     * KeyExpressions; they trigger this case */
+    if (it->first >= prev) {
+      if (it->first > prev) {
+        frame_buffer.append (text, prev, it->first - prev);
+        prev = it->first + it->second.length;
+      } 
+        
+      frame_buffer += color_list[it->second.color_index];
+      frame_buffer.append (text, it->first, it->second.length);
+      frame_buffer += "\033[38;2;255;255;255m";
+      prev = it->first + it->second.length;
+    }
+  }
+
+  frame_buffer.append (text, prev, text.length ());
 }
 
 unsigned KeyExpression::get_append_cutoff () {
@@ -154,10 +191,10 @@ std::regex & KeyExpression::get_regex () {
   return this->reg;
 }
 
-bool KeyExpression::get_cap_color_at_end () {
-  return this->cap_color_at_end;
+bool KeyExpression::get_cap_color () {
+  return this->cap_color;
 }
 
-void KeyExpression::set_cap_color_at_end (bool cap) {
-  this->cap_color_at_end = cap;
+void KeyExpression::set_cap_color (bool cap) {
+  this->cap_color = cap;
 }

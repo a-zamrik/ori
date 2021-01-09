@@ -445,6 +445,11 @@ void Line::draw_color (unsigned width, const std::string &r_buf,
   this->pieces_to_string (r_buf, w_buf);
 
   size_t start = lex.color_line (this->frame_buffer, this->text, 0);
+  printf("%s%*s",
+        this->frame_buffer.c_str (),
+        width  - (unsigned) this->text.length (),
+        this->mark.c_str ());
+  return;
 
 
   /* TODO: make a proper lexer */

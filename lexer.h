@@ -8,15 +8,13 @@
 struct exp_piece {
   unsigned length;
   unsigned color_index;
-  bool cap_color;
 
   exp_piece () {
     length = 0;
     color_index = 0;
-    cap_color = 0;
   }
 
-}
+};
 
 class KeyExpression {
 
@@ -24,7 +22,7 @@ class KeyExpression {
     std::regex reg;         // describes the pattern of thie KeyExpression
     unsigned append_cutoff; // how far to not append from end
     unsigned color_index;   // index into a ANSI color list
-    bool cap_color_at_end;  // place default color after keyword or end of line
+    bool cap_color;         // place default color after keyword
 
   public:
     KeyExpression (const std::string &, unsigned, unsigned);
@@ -34,8 +32,8 @@ class KeyExpression {
     std::regex & get_regex ();
     unsigned get_append_cutoff ();
     unsigned get_color_index ();
-    bool get_cap_color_at_end ();
-    void set_cap_color_at_end (bool);
+    bool get_cap_color ();
+    void set_cap_color (bool);
 
 };
 
@@ -65,6 +63,12 @@ class Lexer {
   KeyExpression key_aux_exp;
   /* searches for inline comments */
   KeyExpression inline_comment_exp;
+  /* searches for strings */
+  KeyExpression str_exp;
+  /* searches for digits */
+  KeyExpression digit_exp;
+  /* searches for char strings */
+  KeyExpression char_exp;
 
   /* Stores list of ANSI color strings */
   std::vector<std::string> color_list;
@@ -86,6 +90,7 @@ class Lexer {
     size_t add_color (unsigned char, unsigned char, unsigned char);
     bool try_regex_match (KeyExpression &, std::string &, const std::string &, unsigned &);
     bool try_regex_match_multiple (KeyExpression &, std::string &, const std::string &, unsigned &);
+    void stitch_frame_buffer (std::string &, const std::string &);
 };
 #endif
 
