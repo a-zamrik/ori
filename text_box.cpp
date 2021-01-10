@@ -514,7 +514,16 @@ void TextBox::render () {
     curr_row = this->text_row_offset;
   }
 
-  lexer_reset ();
+  /* prime the lexer by letting it know of the previous lines sate */
+  if (this->lines.size () > 1) {
+    if (!this->scroll_offset || this->lines.size () < 2) {
+      this->lexer.start (false);
+    } else {
+      this->lexer.start ((*--line)->get_in_comment_state ());
+      line++;
+    }
+  }
+
   std::string color_buffer;
   /* print lines with text within bounds */
   for (int i = j; i <= this->scroll_offset + this->length && line != this->end (); i++) {

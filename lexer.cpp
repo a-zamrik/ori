@@ -1,8 +1,17 @@
 #include "lexer.h"
 #include <string>
 
+/* should be called before being a render pass. sets the state of the
+ * lexer for proper syntax highlighting */
+void
+Lexer::start (bool _in_comment_block) {
 
+  this->in_comment_block = _in_comment_block;
 
+}
+
+/* searches for a pattern within TEXT using the regex in K_EXP. if found
+ * a expression piece will be made */
 bool 
 Lexer::try_regex_match ( KeyExpression & k_exp,
                   std::string & frame_buffer,
@@ -28,6 +37,8 @@ Lexer::try_regex_match ( KeyExpression & k_exp,
   return result;
 }
 
+/* searches for multiple pattersn with in TEXT using the regex in K_EXP.
+ * an expression piece will be made for each match */
 bool
 Lexer::try_regex_match_multiple ( KeyExpression & k_exp,
                   std::string & frame_buffer,
@@ -52,6 +63,61 @@ Lexer::try_regex_match_multiple ( KeyExpression & k_exp,
   }
 
   return result;
+}
+
+/* searches for a comment block in text. If a comment block is found
+ * but its end is not found, then the lexer will enter a block comment
+ * state. Only Lexer::try_regex_cap_comment can take the lexer out of
+ * that state */
+void
+Lexer::try_regex_comment_block (const std::string &text) {
+  
+  bool found = false;
+
+  std::smatch m;
+  for (std::sregex_iterator it = std::sregex_iterator (text.begin (), text.end (), block_comment_exp.get_regex ());
+       it != std::sregex_iterator ();
+       it++) {
+
+    m = *it;
+    struct exp_piece ep;
+    ep.length = m.length (0);
+    ep.color_index = block_comment_exp.get_color_index ();
+
+    expressions.insert (std::pair <unsigned, struct exp_piece> (m.position(0), ep));
+
+    found = true;
+  }
+
+  /* see if there was an uncapped comment block */
+  if (found) {
+    unsigned i = m.position (0) + m.length (0) - 1;
+    if (text[i - 1] != '*' || text[i] != '/') {
+      this->in_comment_block = true;
+    } else {
+      this->in_comment_block = false;
+    }
+  }
+
+}
+
+/* will search for end of block comment in text. If found; a expression piece
+ * will be used to end to comment syntax highlight */
+bool
+Lexer::try_regex_cap_comment (const std::string &text) {
+  
+  std::smatch m;
+
+  if (std::regex_search (text, m, block_comment_end_exp.get_regex ())) {
+    struct exp_piece ep;
+    ep.length = m.length (0) + m.position (0);
+    ep.color_index = block_comment_end_exp.get_color_index ();
+
+    expressions.insert (std::pair <unsigned, struct exp_piece> (0, ep));
+
+    return true;
+  }
+  return false;
 }
 
 
@@ -83,26 +149,28 @@ Lexer::Lexer () {
   /* TODO: need way to know string continues over to next line */
   this->str_exp = KeyExpression ("\".*(\"|\\\\)", 0, color_index);
   
-  color_index = this->add_color (171, 146, 191);
-  this->data_type_exp = KeyExpression ("\\b(bool|signed|unsigned|short\
-    |int|long|char|float|double|size_t|wchar_t|void|NULL|true|false)\\b", 0, color_index);
+  color_index = this->add_color (200, 200, 255);
+  this->data_type_exp = KeyExpression ("\\b(bool|signed|unsigned|short|int|long|char|float|double|size_t|wchar_t|void|NULL|true|false)\\b", 0, color_index);
 
   color_index = this->add_color (244, 157, 110);
-  this->key_word_exp = KeyExpression ("\\b(if|else|while|for|switch|case|do)\\b", 0, color_index);
+  this->key_word_exp = KeyExpression ("\\b(if|else|while|for|switch|case|do|default)\\b", 0, color_index);
 
   color_index = this->add_color (227, 231, 175);
   this->key_aux_exp = KeyExpression ("\\b(struct|break|const|this|return|static|class|private|public|protected|auto)\\b", 0, color_index);
 
 
-  color_index = this->add_color (227, 231, 175);
+  color_index = this->add_color (227, 231, 100);
   this->inline_comment_exp = KeyExpression ("//", 0, color_index);
   this->inline_comment_exp.set_cap_color (false);  // rest of line is not color capped
 
+  this->block_comment_exp = KeyExpression ("\\/\\*(\\/(?!\\*)|[^*])*(\\*\\/|$)", 0, color_index);
+  this->block_comment_end_exp = KeyExpression ("\\*\\/", 0, color_index);
+
   color_index = this->add_color (200, 50, 200);
-  this->digit_exp = KeyExpression ("[0-9]*", 0, color_index);
+  this->digit_exp = KeyExpression ("\\b(0x[\\da-fA-F]+|\\d+)\\b", 0, color_index);
 
   color_index = this->add_color (157, 110, 244);
-  this->char_exp = KeyExpression ("'(\\w|0x\\w{1,2}|\\\\[0-9]{3}|\\\\[a-z])'", 0, color_index);
+  this->char_exp = KeyExpression ("'(\\w|0x{1,2}|\\\\[0-9]{3}|\\\\[a-z])'", 0, color_index);
 }
 
 KeyExpression::KeyExpression (const std::string & regexp,
@@ -117,7 +185,7 @@ KeyExpression::KeyExpression (const std::string & regexp,
 }
 
 unsigned Lexer::color_line (std::string & frame_buffer, const std::string &text,
-    unsigned line_num) {
+    bool &line_in_comment) {
 
   /* TODO: Could use a regex iterator to split the string based on 
    * spaces and special chars, such as #, comment blocks, or " */ 
@@ -126,45 +194,78 @@ unsigned Lexer::color_line (std::string & frame_buffer, const std::string &text,
   expressions.clear ();
   unsigned curr_pos = 0;
 
-  /* search and color include preprocessor key word */
-  if (try_regex_match (this->inc_exp, frame_buffer, text, curr_pos)) {
-    try_regex_match (this->str_aftr_inc_exp, frame_buffer, text, curr_pos);
+  /* previous line had an uncapped comment */
+  if (this->in_comment_block) {
+    
+    /* look for comment end cap */
+    if (try_regex_cap_comment (text)) {
+      this->in_comment_block = false;
+      line_in_comment = false;
+      
+    } else {
+      struct exp_piece ep;
+      ep.length = text.length ();
+      ep.color_index = block_comment_exp.get_color_index ();
+
+      expressions.insert (std::pair <unsigned, struct exp_piece> (0, ep));
+
+      line_in_comment = true;
+    }
+
+  } else {
+    line_in_comment = false;
   }
-
-  /* search and color defined words */
-  try_regex_match (this->define_exp, frame_buffer, text, curr_pos);
-
-  /* search and color preprocessor commands */
-  try_regex_match (this->preprocess_exp, frame_buffer, text, curr_pos);
-
-  /* search and color inline comments */ 
-  try_regex_match (this->inline_comment_exp, frame_buffer, text, curr_pos);
-
-  /* search and color strings */
-  try_regex_match_multiple (this->str_exp, frame_buffer, text, curr_pos);
-
-  /* search and color key words */
-   try_regex_match_multiple (this->key_word_exp, frame_buffer, text, curr_pos);
   
-  /* search and color data type */
-   try_regex_match_multiple (this->data_type_exp, frame_buffer, text, curr_pos);
-
-  /* search and color aux key words */
-   try_regex_match_multiple (this->key_aux_exp, frame_buffer, text, curr_pos);
+  if (!line_in_comment) {
 
 
-   /* search and color char strings */
-   try_regex_match_multiple (this->char_exp, frame_buffer, text, curr_pos);
+    /* search and color comment blocks */
+    try_regex_comment_block (text);
+    if (this->in_comment_block)
+      line_in_comment = true;
 
-   /* search and color digits */
-   try_regex_match_multiple (this->digit_exp, frame_buffer, text, curr_pos);
-  
+    /* search and color include preprocessor key word */
+    if (try_regex_match (this->inc_exp, frame_buffer, text, curr_pos)) {
+      try_regex_match (this->str_aftr_inc_exp, frame_buffer, text, curr_pos);
+    }
+
+    /* search and color defined words */
+    try_regex_match (this->define_exp, frame_buffer, text, curr_pos);
+
+    /* search and color preprocessor commands */
+    try_regex_match (this->preprocess_exp, frame_buffer, text, curr_pos);
+
+    /* search and color inline comments */ 
+    try_regex_match (this->inline_comment_exp, frame_buffer, text, curr_pos);
+
+    /* search and color strings */
+    try_regex_match_multiple (this->str_exp, frame_buffer, text, curr_pos);
+
+    /* search and color key words */
+     try_regex_match_multiple (this->key_word_exp, frame_buffer, text, curr_pos);
+    
+    /* search and color data type */
+     try_regex_match_multiple (this->data_type_exp, frame_buffer, text, curr_pos);
+
+    /* search and color aux key words */
+     try_regex_match_multiple (this->key_aux_exp, frame_buffer, text, curr_pos);
+
+
+     /* search and color char strings */
+     try_regex_match_multiple (this->char_exp, frame_buffer, text, curr_pos);
+
+     /* search and color digits */
+     try_regex_match_multiple (this->digit_exp, frame_buffer, text, curr_pos);
+  }
    
    stitch_frame_buffer (frame_buffer, text);
   
   return curr_pos;
 }
 
+/* using the expression peices that were created from the various KeyPieces;
+ * a colored string can be stitched together and placed into FRAME_BUFFER.
+ * TEXT is the text that will be colored */
 void Lexer::stitch_frame_buffer (std::string & frame_buffer, const std::string & text) {
 
   unsigned prev = 0;

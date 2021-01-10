@@ -50,6 +50,9 @@ class Lexer {
   // Map <string Token, paired_keyword>
   // Map <string Token, inline_paired_keyword>
   // Map <string Token, key_word>
+  
+  /* set to true if line had an uncapped comment block */
+  bool in_comment_block= false;
 
   /* searches for "#include < */
   KeyExpression inc_exp;
@@ -67,6 +70,10 @@ class Lexer {
   KeyExpression key_aux_exp;
   /* searches for inline comments */
   KeyExpression inline_comment_exp;
+  /* searchs for comment blocks */
+  KeyExpression block_comment_exp;
+  /* searches for end of comment block */
+  KeyExpression block_comment_end_exp;
   /* searches for strings */
   KeyExpression str_exp;
   /* searches for digits */
@@ -87,13 +94,15 @@ class Lexer {
   public:
     /* sets up state of lexer given a starting line. May need to know if
      * in a comment block or not, or string block */
-    void start (unsigned start_line) {}
-    unsigned color_line (std::string &, const std::string &, unsigned);
+    void start (bool);
+    unsigned color_line (std::string &, const std::string &, bool &);
     Lexer ();
     ~Lexer () = default;
     size_t add_color (unsigned char, unsigned char, unsigned char);
     bool try_regex_match (KeyExpression &, std::string &, const std::string &, unsigned &);
     bool try_regex_match_multiple (KeyExpression &, std::string &, const std::string &, unsigned &);
+    void try_regex_comment_block (const std::string &);
+    bool try_regex_cap_comment (const std::string &);
     void stitch_frame_buffer (std::string &, const std::string &);
 };
 #endif

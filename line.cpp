@@ -13,6 +13,9 @@ void zero_redo_struct (struct redo* r) {
   
 }
 
+bool Line::get_in_comment_state () {
+  return this->state.in_comment_block;
+}
 
 /* used by undo command:
  * given an FP and a line that holds FP, the HOLDER, this
@@ -447,7 +450,7 @@ void Line::draw_color (unsigned width, const std::string &r_buf,
   if (1) {
     this->pieces_to_string (r_buf, w_buf);
 
-    start = lex.color_line (this->frame_buffer, this->text, 0);
+    start = lex.color_line (this->frame_buffer, this->text, this->state.in_comment_block);
     frame_cached = true;
   }
   printf("%s%*s",

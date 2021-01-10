@@ -1,13 +1,3 @@
-# define ORI_H
-
-'a'
-#include < how >
-" for wow int "
-for const unsigned int
-How are you doing today!
-
-I am doing great today. I hope all is well with you. I created this text editor and it has lead to some
-interesting problems. Its almost complete. I just want to implement undo and redo functionality.
-Afterwards, I would like to then make a lexer to have better text hightlighting.
-
-Things are working!!!!
+/* from:
+ * for */
+for while
