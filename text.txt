@@ -1,3 +1,5 @@
+# define ORI_H
+
 'a'
 #include < how >
 " for wow int "

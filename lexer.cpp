@@ -72,6 +72,11 @@ Lexer::Lexer () {
   size_t color_index = this->add_color (227, 231, 175);
   this->inc_exp = KeyExpression ("#[ \t]*include[ \t]*(<|\")", 1, color_index);
 
+
+  color_index = this->add_color (175, 227, 231);
+  this->define_exp = KeyExpression ("#[ \t]*(define|ifndef)[ \t]*[a-zA-Z0-9_]", 1, color_index);
+  this->preprocess_exp = KeyExpression("#[ \t]*endif\\b", 0, color_index);
+
   color_index = this->add_color (177, 255, 200);
   this->str_aftr_inc_exp = KeyExpression ("(\".*\")|(<.*>)", 0, color_index);
 
@@ -80,14 +85,13 @@ Lexer::Lexer () {
   
   color_index = this->add_color (171, 146, 191);
   this->data_type_exp = KeyExpression ("\\b(bool|signed|unsigned|short\
-    |int|long|char|float|double|size_t|wchar_t|void|NULL)\\b", 0, color_index);
+    |int|long|char|float|double|size_t|wchar_t|void|NULL|true|false)\\b", 0, color_index);
 
   color_index = this->add_color (244, 157, 110);
-  this->key_word_exp = KeyExpression ("\\b(if|while|for|switch|case|do)\\b", 0, color_index);
+  this->key_word_exp = KeyExpression ("\\b(if|else|while|for|switch|case|do)\\b", 0, color_index);
 
   color_index = this->add_color (227, 231, 175);
-  this->key_aux_exp = KeyExpression ("\\b(struct|const|this|return|static|class|\
-                      private|public|protected|auto)\\b", 0, color_index);
+  this->key_aux_exp = KeyExpression ("\\b(struct|break|const|this|return|static|class|private|public|protected|auto)\\b", 0, color_index);
 
 
   color_index = this->add_color (227, 231, 175);
@@ -98,7 +102,7 @@ Lexer::Lexer () {
   this->digit_exp = KeyExpression ("[0-9]*", 0, color_index);
 
   color_index = this->add_color (157, 110, 244);
-  this->char_exp = KeyExpression ("'[a-zA-Z0-9]+'", 0, color_index);
+  this->char_exp = KeyExpression ("'(\\w|0x\\w{1,2}|\\\\[0-9]{3}|\\\\[a-z])'", 0, color_index);
 }
 
 KeyExpression::KeyExpression (const std::string & regexp,
@@ -115,6 +119,9 @@ KeyExpression::KeyExpression (const std::string & regexp,
 unsigned Lexer::color_line (std::string & frame_buffer, const std::string &text,
     unsigned line_num) {
 
+  /* TODO: Could use a regex iterator to split the string based on 
+   * spaces and special chars, such as #, comment blocks, or " */ 
+
   frame_buffer.clear ();
   expressions.clear ();
   unsigned curr_pos = 0;
@@ -123,6 +130,12 @@ unsigned Lexer::color_line (std::string & frame_buffer, const std::string &text,
   if (try_regex_match (this->inc_exp, frame_buffer, text, curr_pos)) {
     try_regex_match (this->str_aftr_inc_exp, frame_buffer, text, curr_pos);
   }
+
+  /* search and color defined words */
+  try_regex_match (this->define_exp, frame_buffer, text, curr_pos);
+
+  /* search and color preprocessor commands */
+  try_regex_match (this->preprocess_exp, frame_buffer, text, curr_pos);
 
   /* search and color inline comments */ 
   try_regex_match (this->inline_comment_exp, frame_buffer, text, curr_pos);
@@ -139,16 +152,15 @@ unsigned Lexer::color_line (std::string & frame_buffer, const std::string &text,
   /* search and color aux key words */
    try_regex_match_multiple (this->key_aux_exp, frame_buffer, text, curr_pos);
 
-   /* search and color digits */
-   try_regex_match_multiple (this->digit_exp, frame_buffer, text, curr_pos);
 
    /* search and color char strings */
    try_regex_match_multiple (this->char_exp, frame_buffer, text, curr_pos);
 
-  stitch_frame_buffer (frame_buffer, text);
+   /* search and color digits */
+   try_regex_match_multiple (this->digit_exp, frame_buffer, text, curr_pos);
   
-  // append rest of text
-  // frame_buffer.append (text, curr_pos, text.length ());
+   
+   stitch_frame_buffer (frame_buffer, text);
   
   return curr_pos;
 }

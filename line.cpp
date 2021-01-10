@@ -442,9 +442,14 @@ std::string & Line::pieces_to_string (const std::string &read_buffer,
 void Line::draw_color (unsigned width, const std::string &r_buf,
                        const std::string &w_buf, Lexer & lex) {
 
-  this->pieces_to_string (r_buf, w_buf);
+  size_t start = 0;
 
-  size_t start = lex.color_line (this->frame_buffer, this->text, 0);
+  if (1) {
+    this->pieces_to_string (r_buf, w_buf);
+
+    start = lex.color_line (this->frame_buffer, this->text, 0);
+    frame_cached = true;
+  }
   printf("%s%*s",
         this->frame_buffer.c_str (),
         width  - (unsigned) this->text.length (),

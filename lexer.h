@@ -55,6 +55,10 @@ class Lexer {
   KeyExpression inc_exp;
   /* searches for included file to highlight */
   KeyExpression str_aftr_inc_exp;
+  /* searches for #define */
+  KeyExpression define_exp;
+  /* searches for preprocess exp */
+  KeyExpression preprocess_exp;
   /* searches for data types */
   KeyExpression data_type_exp;
   /* searches for key words */
