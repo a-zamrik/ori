@@ -40,7 +40,7 @@ int main () {
   // fprintf (stderr, "\e[?1000h\e[?1006h\e[?1015");
   // while (1);
   
-  initialize ("text.txt");
+  initialize ("text.cpp");
   render ();
 
   while (user_input ())

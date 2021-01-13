@@ -107,9 +107,9 @@ class Lexer {
     bool try_regex_match (KeyExpression &, std::string &, const std::string &, unsigned &);
     bool try_regex_match_multiple (KeyExpression &, std::string &, const std::string &, unsigned &);
     void try_regex_comment_block (const std::string &);
-    void try_regex_string_block (const std::string &);
+    void try_regex_string_block (const std::string &, unsigned);
     bool try_regex_cap_comment (const std::string &);
-    bool try_regex_cap_string (const std::string &);
+    unsigned try_regex_cap_string (const std::string &);
     void stitch_frame_buffer (std::string &, const std::string &);
   public:
     /* sets up state of lexer given a starting line. May need to know if

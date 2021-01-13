@@ -108,13 +108,15 @@ Lexer::try_regex_comment_block (const std::string &text) {
 
 }
 
+/* start_offset is where to start searching in the string. Should be provided
+ * by try_regex_cap_string */
 void
-Lexer::try_regex_string_block (const std::string &text) {
+Lexer::try_regex_string_block (const std::string &text, unsigned start_offset) {
   
   bool found = false;
 
   std::smatch m;
-  for (std::sregex_iterator it = std::sregex_iterator (text.begin (), text.end (), str_exp.get_regex ());
+  for (std::sregex_iterator it = std::sregex_iterator (text.begin () + start_offset, text.end (), str_exp.get_regex ());
        it != std::sregex_iterator ();
        it++) {
 
@@ -123,14 +125,14 @@ Lexer::try_regex_string_block (const std::string &text) {
     ep.length = m.length (0);
     ep.color_index = str_exp.get_color_index ();
 
-    expressions.insert (std::pair <unsigned, struct exp_piece> (m.position(0), ep));
+    expressions.insert (std::pair <unsigned, struct exp_piece> (m.position(0) + start_offset, ep));
 
     found = true;
   }
 
   /* see if there was an uncapped comment block */
   if (found) {
-    unsigned i = m.position (0) + m.length (0) - 1;
+    unsigned i = m.position (0) + m.length (0) - 1 + start_offset;
     if (text[i] == '\\') {
       this->in_string_block = true;
     } else {
@@ -142,10 +144,13 @@ Lexer::try_regex_string_block (const std::string &text) {
 
 }
 
-bool
+/* returns an offset of where the end of the string was found. this value
+ * will be used in try_regex_string_block as a starting point. */
+unsigned
 Lexer::try_regex_cap_string (const std::string &text) {
   
   std::smatch m;
+  unsigned offset = 0;
 
   if (std::regex_search (text, m, str_cap_exp.get_regex ())) {
     struct exp_piece ep;
@@ -158,12 +163,16 @@ Lexer::try_regex_cap_string (const std::string &text) {
     
     unsigned i = m.position (1) + m.length (1) - 1;
     if (text[i] == '\\') {
-      return true;
+      this->in_string_block = true;
+    } else {
+      this->in_string_block = false;
+      offset = m.position (1) + m.length (1);
     }
-
-    return false;
+  } else {
+    this->in_string_block = false;
   }
-  return false;
+  
+  return offset;
 }
 
 
@@ -214,8 +223,8 @@ Lexer::Lexer () {
   this->str_aftr_inc_exp = KeyExpression ("(\".*\")|(<.*>)", 0, color_index);
 
   /* TODO: need way to know string continues over to next line */
-  this->str_exp = KeyExpression ("\".*(\"|\\\\)", 0, color_index);
-  this->str_cap_exp = KeyExpression ("(\\\\|\")\\s*$", 0, color_index);
+  this->str_exp = KeyExpression ("\"[^\"]*(\"|\\\\)", 0, color_index);
+  this->str_cap_exp = KeyExpression ("(\\\\\\s*$|\")", 0, color_index);
   
   color_index = this->add_color (200, 200, 255);
   this->data_type_exp = KeyExpression ("\\b(bool|signed|unsigned|short|int|long|char|float|double|size_t|wchar_t|void|NULL|true|false)\\b", 0, color_index);
@@ -284,19 +293,10 @@ unsigned Lexer::color_line (std::string & frame_buffer, const std::string &text,
     line_state.in_comment_block = false;
   }
 
-
+  unsigned str_start_offset = 0;
   if (this->in_string_block) {
-
-      struct exp_piece ep;
-      ep.length = text.length ();
-      ep.color_index = str_exp.get_color_index ();
-
-      expressions.insert (std::pair <unsigned, struct exp_piece> (0, ep));
-
-
-      line_state.in_string_block = try_regex_cap_string (text);
-      this->in_string_block = line_state.in_string_block;
-
+      str_start_offset = try_regex_cap_string (text);
+      line_state.in_string_block = this->in_string_block;
   }
 
   
@@ -310,7 +310,7 @@ unsigned Lexer::color_line (std::string & frame_buffer, const std::string &text,
       line_state.in_comment_block = true;
 
     /* search and color strings */
-    try_regex_string_block (text);
+    try_regex_string_block (text, str_start_offset);
     line_state.in_string_block = this->in_string_block;
     
     /* search and color include preprocessor key word */

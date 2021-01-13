@@ -80,6 +80,7 @@ Line::Line (std::list<struct file_piece*> * _pieces, std::stack<struct redo>* st
   this->pieces = _pieces;
 
   st->top ().new_line = this;
+  this->set_mark ('+');
 }
 
 Line::Line (std::string &text, std::string &mark) {
@@ -329,6 +330,9 @@ void Line::delete_char (unsigned pos, std::stack<struct redo>* st) {
 // return true if line changed
 std::list<struct file_piece*> * Line::clip (unsigned pos, std::stack<struct redo>* st) {
 
+  this->set_mark ('+');
+  this->frame_cached = false;
+  
   /* TODO: set mark to + if changed */
   std::list<struct file_piece*>::iterator pit;
   for (pit = this->pieces->begin (); pit != pieces->end (); pit++) {
@@ -406,7 +410,6 @@ std::list<struct file_piece*> * Line::clip (unsigned pos, std::stack<struct redo
     }
   }
 
-  this->frame_cached = false;
   return result;
 }
 
