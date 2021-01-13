@@ -16,6 +16,17 @@ struct exp_piece {
 
 };
 
+struct line_state {
+  bool in_comment_block;
+  bool in_string_block;
+
+  line_state () {
+    this->in_comment_block = false;
+    this->in_string_block = false;
+  }
+};
+
+
 class KeyExpression {
 
   private:
@@ -53,6 +64,7 @@ class Lexer {
   
   /* set to true if line had an uncapped comment block */
   bool in_comment_block= false;
+  bool in_string_block = false;
 
   /* searches for "#include < */
   KeyExpression inc_exp;
@@ -76,6 +88,7 @@ class Lexer {
   KeyExpression block_comment_end_exp;
   /* searches for strings */
   KeyExpression str_exp;
+  KeyExpression str_cap_exp;
   /* searches for digits */
   KeyExpression digit_exp;
   /* searches for char strings */
@@ -91,19 +104,23 @@ class Lexer {
    * first char of that token and see it if matches a charkeyword, like
    * '#', '/', '*', and then see if it matches any patterns */
 
-  public:
-    /* sets up state of lexer given a starting line. May need to know if
-     * in a comment block or not, or string block */
-    void start (bool);
-    unsigned color_line (std::string &, const std::string &, bool &);
-    Lexer ();
-    ~Lexer () = default;
-    size_t add_color (unsigned char, unsigned char, unsigned char);
     bool try_regex_match (KeyExpression &, std::string &, const std::string &, unsigned &);
     bool try_regex_match_multiple (KeyExpression &, std::string &, const std::string &, unsigned &);
     void try_regex_comment_block (const std::string &);
+    void try_regex_string_block (const std::string &);
     bool try_regex_cap_comment (const std::string &);
+    bool try_regex_cap_string (const std::string &);
     void stitch_frame_buffer (std::string &, const std::string &);
+  public:
+    /* sets up state of lexer given a starting line. May need to know if
+     * in a comment block or not, or string block */
+    void start (struct line_state &);
+    void start ();
+
+    unsigned color_line (std::string &, const std::string &, struct line_state &);
+    Lexer ();
+    ~Lexer () = default;
+    size_t add_color (unsigned char, unsigned char, unsigned char);
 };
 #endif
 

@@ -18,14 +18,6 @@ struct file_piece {
   }
 };
 
-struct line_state {
-  bool in_comment_block;
-
-  line_state () {
-    this->in_comment_block = false;
-  }
-};
-
 class Line {
   private:
     /*TODO: delete text */
@@ -70,7 +62,7 @@ class Line {
     void set_mark (char);
     void draw (unsigned, const std::string &, const std::string &);
     void draw_color (unsigned, const std::string &, const std::string &, Lexer &);
-    bool get_in_comment_state ();
+    struct line_state & get_line_state ();
 
     void unmount ();
 };

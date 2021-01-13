@@ -517,9 +517,9 @@ void TextBox::render () {
   /* prime the lexer by letting it know of the previous lines sate */
   if (this->lines.size () > 1) {
     if (!this->scroll_offset || this->lines.size () < 2) {
-      this->lexer.start (false);
+      this->lexer.start ();
     } else {
-      this->lexer.start ((*--line)->get_in_comment_state ());
+      this->lexer.start ((*--line)->get_line_state ());
       line++;
     }
   }

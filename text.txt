@@ -1,3 +1,7 @@
+"howdy \
+this is good \
+how about this
+
 /* from:
  * for */
 for while

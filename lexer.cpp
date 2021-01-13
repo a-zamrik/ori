@@ -4,10 +4,17 @@
 /* should be called before being a render pass. sets the state of the
  * lexer for proper syntax highlighting */
 void
-Lexer::start (bool _in_comment_block) {
+Lexer::start (struct line_state & state) {
+  this->in_comment_block = state.in_comment_block;
+  this->in_string_block = state.in_string_block;
+}
 
-  this->in_comment_block = _in_comment_block;
-
+/* default lexer start: assumes that rendering is occuring at top of
+ * file. The very first line */
+void
+Lexer::start () {
+  this->in_comment_block = false;
+  this->in_string_block = false;
 }
 
 /* searches for a pattern within TEXT using the regex in K_EXP. if found
@@ -101,6 +108,66 @@ Lexer::try_regex_comment_block (const std::string &text) {
 
 }
 
+void
+Lexer::try_regex_string_block (const std::string &text) {
+  
+  bool found = false;
+
+  std::smatch m;
+  for (std::sregex_iterator it = std::sregex_iterator (text.begin (), text.end (), str_exp.get_regex ());
+       it != std::sregex_iterator ();
+       it++) {
+
+    m = *it;
+    struct exp_piece ep;
+    ep.length = m.length (0);
+    ep.color_index = str_exp.get_color_index ();
+
+    expressions.insert (std::pair <unsigned, struct exp_piece> (m.position(0), ep));
+
+    found = true;
+  }
+
+  /* see if there was an uncapped comment block */
+  if (found) {
+    unsigned i = m.position (0) + m.length (0) - 1;
+    if (text[i] == '\\') {
+      this->in_string_block = true;
+    } else {
+      this->in_string_block = false;
+    }
+  } else {
+    this->in_string_block = false;
+  }
+
+}
+
+bool
+Lexer::try_regex_cap_string (const std::string &text) {
+  
+  std::smatch m;
+
+  if (std::regex_search (text, m, str_cap_exp.get_regex ())) {
+    struct exp_piece ep;
+    ep.length = m.length (1) + m.position (1);
+    ep.color_index = str_cap_exp.get_color_index ();
+
+    expressions.insert (std::pair <unsigned, struct exp_piece> (0, ep));
+
+
+    
+    unsigned i = m.position (1) + m.length (1) - 1;
+    if (text[i] == '\\') {
+      return true;
+    }
+
+    return false;
+  }
+  return false;
+}
+
+
+
 /* will search for end of block comment in text. If found; a expression piece
  * will be used to end to comment syntax highlight */
 bool
@@ -148,6 +215,7 @@ Lexer::Lexer () {
 
   /* TODO: need way to know string continues over to next line */
   this->str_exp = KeyExpression ("\".*(\"|\\\\)", 0, color_index);
+  this->str_cap_exp = KeyExpression ("(\\\\|\")\\s*$", 0, color_index);
   
   color_index = this->add_color (200, 200, 255);
   this->data_type_exp = KeyExpression ("\\b(bool|signed|unsigned|short|int|long|char|float|double|size_t|wchar_t|void|NULL|true|false)\\b", 0, color_index);
@@ -185,7 +253,7 @@ KeyExpression::KeyExpression (const std::string & regexp,
 }
 
 unsigned Lexer::color_line (std::string & frame_buffer, const std::string &text,
-    bool &line_in_comment) {
+    struct line_state &line_state) {
 
   /* TODO: Could use a regex iterator to split the string based on 
    * spaces and special chars, such as #, comment blocks, or " */ 
@@ -200,7 +268,7 @@ unsigned Lexer::color_line (std::string & frame_buffer, const std::string &text,
     /* look for comment end cap */
     if (try_regex_cap_comment (text)) {
       this->in_comment_block = false;
-      line_in_comment = false;
+      line_state.in_comment_block = false;
       
     } else {
       struct exp_piece ep;
@@ -209,21 +277,42 @@ unsigned Lexer::color_line (std::string & frame_buffer, const std::string &text,
 
       expressions.insert (std::pair <unsigned, struct exp_piece> (0, ep));
 
-      line_in_comment = true;
+      line_state.in_comment_block = true;
     }
 
   } else {
-    line_in_comment = false;
+    line_state.in_comment_block = false;
   }
+
+
+  if (this->in_string_block) {
+
+      struct exp_piece ep;
+      ep.length = text.length ();
+      ep.color_index = str_exp.get_color_index ();
+
+      expressions.insert (std::pair <unsigned, struct exp_piece> (0, ep));
+
+
+      line_state.in_string_block = try_regex_cap_string (text);
+      this->in_string_block = line_state.in_string_block;
+
+  }
+
   
-  if (!line_in_comment) {
+  line_state.in_string_block = this->in_string_block;
+  if (!line_state.in_comment_block && !line_state.in_string_block) {
 
 
     /* search and color comment blocks */
     try_regex_comment_block (text);
     if (this->in_comment_block)
-      line_in_comment = true;
+      line_state.in_comment_block = true;
 
+    /* search and color strings */
+    try_regex_string_block (text);
+    line_state.in_string_block = this->in_string_block;
+    
     /* search and color include preprocessor key word */
     if (try_regex_match (this->inc_exp, frame_buffer, text, curr_pos)) {
       try_regex_match (this->str_aftr_inc_exp, frame_buffer, text, curr_pos);
@@ -237,9 +326,6 @@ unsigned Lexer::color_line (std::string & frame_buffer, const std::string &text,
 
     /* search and color inline comments */ 
     try_regex_match (this->inline_comment_exp, frame_buffer, text, curr_pos);
-
-    /* search and color strings */
-    try_regex_match_multiple (this->str_exp, frame_buffer, text, curr_pos);
 
     /* search and color key words */
      try_regex_match_multiple (this->key_word_exp, frame_buffer, text, curr_pos);
