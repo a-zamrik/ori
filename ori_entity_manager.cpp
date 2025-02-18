@@ -104,3 +104,4 @@ Prompt * load_unsaved_changes_prompt (const std::string &title) {
   prompt->mount_cursor ();
   return prompt;
 }
+

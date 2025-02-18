@@ -33,4 +33,9 @@ class OriEntityManager {
 Prompt * load_ok_prompt (const std::string &);
 Prompt * load_unsaved_changes_prompt (const std::string &title);
 
+
+
+
+
+
 #endif
