@@ -1,8 +1,8 @@
  Ori
 
 An in-terminal text editor.
-![ori default](/img/Ori_DEF_2.png)
-![ori default](/img/Ori_Open.png)
+![ori default](img/Ori_DEF_2.png)
+![ori default](img/Ori_Open.png)
 
 ## Build
 A makefile is provided to build ori; ori has only been tested on Linux.
