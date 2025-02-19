@@ -1,14 +1,17 @@
 # Ori
 
 An in-terminal text editor made entirely with the C++ standard library.
+Inspired by other in-terminal text editors such as Vim and Nano.
+
 ![ori default](img/Ori_Def_2.PNG)
+
 ![ori default 2](img/Ori_Open.PNG)
 
 ## Features
 * Syntax highlighting for C/C++ files.
 * Undo functionality.
 * Built-in file explorer; used to switch between files. Provides a file preview before opening.
-* Changed lines are visibly with a plus to keep track of changes.
+* Changed lines are marked with a plus to keep track of changes.
 ![ori line edit](img/Ori_Line_Edit.PNG)
 
 
