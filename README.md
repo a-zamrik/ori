@@ -1,4 +1,4 @@
-#Ori
+# Ori
 
 An in-terminal text editor made entirely with the C++ standard library.
 ![ori default](img/Ori_Def_2.PNG)
